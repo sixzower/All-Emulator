@@ -5,7 +5,7 @@ window.SYSTEMS = [
   { id:'gb',   group:'handheld', name:'Game Boy / Color', short:'GB',  core:'gb',   glyph:'tall', c:['#9bbc0f','#4a6b12'], ext:['gb','gbc'] },
   { id:'gba',  group:'handheld', name:'Game Boy Advance', short:'GBA', core:'gba',  glyph:'wide', c:['#7b5cff','#2c1c8a'], ext:['gba'] },
   { id:'nds',  group:'handheld', name:'Nintendo DS',      short:'DS',  core:'nds',  glyph:'dual', c:['#d9dde4','#7a8190'], ext:['nds'] },
-  { id:'psp',  group:'handheld', name:'PlayStation Portable', short:'PSP', core:'psp', glyph:'wide', c:['#2b2f3a','#0d0f14'], ext:['iso','cso','pbp'], heavy:true, threads:true },
+  { id:'psp',  group:'handheld', name:'PlayStation Portable', short:'PSP', core:'psp', glyph:'wide', c:['#2b2f3a','#0d0f14'], ext:['iso','cso','pbp'], heavy:true, threads:true, native:'psp' },
   { id:'gg',   group:'handheld', name:'Game Gear',        short:'GG',  core:'segaGG', glyph:'wide', c:['#4f6bff','#12206b'], ext:['gg'] },
   { id:'ngp',  group:'handheld', name:'Neo Geo Pocket',   short:'NGP', core:'ngp',  glyph:'wide', c:['#ff7a59','#8a2a12'], ext:['ngp','ngc'] },
   { id:'ws',   group:'handheld', name:'WonderSwan',       short:'WS',  core:'ws',   glyph:'tall', c:['#35c2b3','#0f5b54'], ext:['ws','wsc'] },
@@ -23,14 +23,16 @@ window.SYSTEMS = [
   { id:'arc',  group:'home', name:'อาร์เคด (Neo Geo / CPS)', short:'ARC', core:'arcade', glyph:'cart', c:['#ff3d9a','#6a0f45'], ext:['zip'] },
 ];
 
-/* รันในเว็บไม่ได้ — แสดงเป็นไอคอนสีเทา กดแล้วบอกทางเลือก */
-window.UNSUPPORTED = [
-  { id:'ps2', name:'PlayStation 2', short:'PS2', glyph:'disc', app:'PCSX2',  url:'https://pcsx2.net' },
-  { id:'gc',  name:'GameCube / Wii', short:'Wii', glyph:'disc', app:'Dolphin', url:'https://dolphin-emu.org' },
-  { id:'3ds', name:'Nintendo 3DS',  short:'3DS', glyph:'dual', app:'Azahar',  url:'https://azahar-emu.org' },
-  { id:'ns',  name:'Nintendo Switch', short:'NSW', glyph:'tall', app:'โปรแกรมจำลองบนเครื่อง', url:'' },
-  { id:'dc',  name:'Dreamcast',     short:'DC',  glyph:'disc', app:'Flycast', url:'https://github.com/flyinghead/flycast' },
+/* เครื่องหนักที่รันในเว็บไม่ได้ — เปิดด้วยโปรแกรมอีมูในเครื่องผ่าน serve.py (ตั้งค่าใน emulators.json) */
+window.NATIVE = [
+  { id:'3ds', name:'Nintendo 3DS',    short:'3DS', glyph:'dual', c:['#ff6a4d','#8a1d0c'], app:'Azahar',  url:'https://azahar-emu.org' },
+  { id:'ps2', name:'PlayStation 2',   short:'PS2', glyph:'disc', c:['#4a5de0','#141a66'], app:'PCSX2',   url:'https://pcsx2.net' },
+  { id:'gc',  name:'GameCube / Wii',  short:'Wii', glyph:'disc', c:['#9b78e6','#3b2475'], app:'Dolphin', url:'https://dolphin-emu.org' },
+  { id:'ns',  name:'Nintendo Switch', short:'NSW', glyph:'tall', c:['#ff5a5a','#3f4bc4'], app:'อีมู Switch ที่คุณมี', url:'' },
+  { id:'dc',  name:'Dreamcast',       short:'DC',  glyph:'disc', c:['#ffae5a','#8a3d0a'], app:'Flycast', url:'https://github.com/flyinghead/flycast' },
 ];
+/* PSP เล่นในเว็บได้ แต่ถ้าตั้ง PPSSPP ไว้ จะมีตัวเลือกเปิดด้วยโปรแกรมในเครื่องด้วย */
+window.NATIVE_ALT = { psp: { app:'PPSSPP', url:'https://www.ppsspp.org' } };
 
 window.GROUPS = [
   { id:'handheld', title:'เครื่องพกพา' },

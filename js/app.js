@@ -34,16 +34,24 @@
       });
       html += '</div></section>';
     });
-    html += '<section class="group"><h2>ยังรันในเว็บไม่ได้</h2><div class="grid card">';
-    UNSUPPORTED.forEach(function (s) {
-      html += '<button class="app off" data-off="' + s.id + '" data-q="' + (s.name + ' ' + s.short).toLowerCase() + '">' + icon({ glyph: s.glyph, short: s.short, c: ['#8a90a0', '#4a4f5e'] }) + '<span class="lbl">' + s.name + '</span></button>';
+    html += '<section class="group"><h2>เปิดด้วยโปรแกรมในเครื่อง</h2><div class="grid card">';
+    NATIVE.forEach(function (n) {
+      html += '<button class="app" data-native="' + n.id + '" data-q="' + (n.name + ' ' + n.short + ' ' + n.app).toLowerCase() + '">' + icon(n) + '<span class="lbl">' + n.name + '</span><span class="sub">หน้าต่างแยก · ' + n.app + '</span></button>';
     });
     html += '</div></section>';
     $('#groups').innerHTML = html;
 
     document.querySelectorAll('.app[data-id]').forEach(function (b) {
       var sys = SYSTEMS.filter(function (s) { return s.id === b.dataset.id; })[0];
-      b.addEventListener('click', function () { pickFile(sys); });
+      b.addEventListener('click', function () {
+        var st = nativeStatus && sys.native && nativeStatus[sys.native];
+        if (st && st.exe_ok && st.games_ok) {
+          var alt = NATIVE_ALT[sys.native];
+          openSheet(sys.name, 'เล่นในเว็บ (ใช้แรงเครื่อง) หรือเปิดด้วย ' + alt.app + ' ที่ลงไว้ในเครื่อง (เบาและเสถียรกว่า)', {
+            ok: 'เล่นในเว็บ', cb: function () { pickFile(sys); },
+            alt: { text: 'เปิดด้วย ' + alt.app, cb: function () { openNative({ id: sys.native, name: sys.name, app: alt.app, url: alt.url }); } } });
+        } else pickFile(sys);
+      });
       b.addEventListener('dragover', function (e) { e.preventDefault(); b.classList.add('drop'); });
       b.addEventListener('dragleave', function () { b.classList.remove('drop'); });
       b.addEventListener('drop', function (e) {
@@ -51,14 +59,75 @@
         if (e.dataTransfer.files[0]) launch(sys, e.dataTransfer.files[0]);
       });
     });
-    document.querySelectorAll('.app[data-off]').forEach(function (b) {
-      var u = UNSUPPORTED.filter(function (s) { return s.id === b.dataset.off; })[0];
-      b.addEventListener('click', function () {
-        sheet(u.name + ' รันในเว็บไม่ได้',
-          'เครื่องนี้หนักเกินกว่าที่เบราว์เซอร์จะจำลองได้ แนะนำให้ใช้ ' + u.app + ' บนเครื่อง แล้วค่อยกลับมาใช้หน้านี้กับเกมเครื่องอื่น',
-          u.url, u.url ? 'เปิดเว็บ ' + u.app : '');
-      });
+    document.querySelectorAll('.app[data-native]').forEach(function (b) {
+      var n = NATIVE.filter(function (x) { return x.id === b.dataset.native; })[0];
+      b.addEventListener('click', function () { openNative(n); });
     });
+  }
+
+  /* ---------- เปิดด้วยโปรแกรมในเครื่อง (ผ่าน serve.py) ---------- */
+  var nativeStatus = null, nCur = null, nGames = [];
+  function api(path, opt) {
+    if (DEMO) return Promise.resolve(demoApi(path));
+    opt = opt || {}; opt.headers = Object.assign({ 'X-AE': '1' }, opt.headers || {});
+    return fetch(path, opt).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.status); return j; }); });
+  }
+  function loadNativeStatus() { return api('/api/native').then(function (j) { nativeStatus = j; return j; }, function () { nativeStatus = null; return null; }); }
+  function showHome() { $('#native').hidden = true; $('#home').hidden = false; window.scrollTo(0, 0); }
+  $('#nBack').onclick = showHome;
+  function sizeText(b) { return b >= 1073741824 ? (b / 1073741824).toFixed(1) + ' GB' : Math.max(1, Math.round(b / 1048576)) + ' MB'; }
+
+  function openNative(n) {
+    nCur = n;
+    $('#home').hidden = true; $('#native').hidden = false; window.scrollTo(0, 0);
+    $('#nTitle').textContent = n.name; $('#nSub').textContent = 'เปิดด้วย ' + n.app;
+    $('#nSearch').value = ''; $('#nList').innerHTML = ''; $('#nSearchWrap').hidden = true;
+    stateCard('<p class="hint">กำลังตรวจสอบ…</p>');
+    loadNativeStatus().then(function (st) {
+      if (!st) return stateCard(stateHtml('เปิดผ่าน serve.py เท่านั้น',
+        'ฟีเจอร์นี้ต้องเปิดเว็บจาก <code>python serve.py</code> (แล้วเข้า <code>http://localhost:8000</code>) ไม่ใช่การดับเบิลคลิก index.html'));
+      var e = st[n.id];
+      if (!e) return stateCard(stateHtml('ยังไม่ได้ตั้งค่า ' + n.name, 'เปิดไฟล์ <code>emulators.json</code> แล้วเพิ่มส่วน <code>"' + n.id + '"</code> ตามตัวอย่างเครื่องอื่น'));
+      if (!e.exe_ok || !e.games_ok) {
+        var li = '';
+        if (!e.exe_ok) li += '<li>ไม่พบโปรแกรมอีมูที่ <code>' + esc(e.exe) + '</code><br><small>แก้ค่า <code>exe</code> ให้ตรงกับที่ติดตั้ง ' + esc(n.app) + (n.url ? ' (<a href="' + n.url + '" target="_blank" rel="noopener">ดาวน์โหลด</a>)' : '') + '</small></li>';
+        if (!e.games_ok) li += '<li>ไม่พบโฟลเดอร์เกมที่ <code>' + esc(e.games) + '</code><br><small>แก้ค่า <code>games</code> เป็นโฟลเดอร์ที่เก็บไฟล์เกม</small></li>';
+        return stateCard(stateHtml('ตั้งค่าอีกนิดเดียว', 'แก้ในไฟล์ <code>emulators.json</code> แล้วกดกลับมาที่หน้านี้อีกครั้ง (ไม่ต้องรีสตาร์ท)') + '<ul class="steps">' + li + '</ul>');
+      }
+      return api('/api/native/' + n.id + '/games').then(function (j) {
+        nGames = j.games; stateCard(null); $('#nSearchWrap').hidden = false; renderGames();
+        if (!nGames.length) stateCard(stateHtml('ไม่พบไฟล์เกม', 'ในโฟลเดอร์ <code>' + esc(e.games) + '</code> ยังไม่มีไฟล์ที่เป็นนามสกุลที่รองรับ'));
+      }, function (err) { stateCard(stateHtml('อ่านรายการเกมไม่ได้', esc(err.message))); });
+    });
+  }
+  function stateHtml(t, b) { return '<h3>' + t + '</h3><p>' + b + '</p>'; }
+  function stateCard(h) { var c = $('#nState'); c.hidden = h === null; if (h !== null) c.innerHTML = h; }
+  function renderGames() {
+    var q = $('#nSearch').value.trim().toLowerCase();
+    var list = nGames.filter(function (g) { return !q || g.path.toLowerCase().indexOf(q) > -1; });
+    $('#nList').innerHTML = list.map(function (g, i) {
+      var dir = g.path.indexOf('/') > -1 ? g.path.replace(/\/[^\/]*$/, '') + ' · ' : '';
+      return '<li><button data-p="' + esc(g.path) + '"><span class="gname">' + esc(g.name.replace(/\.[^.]+$/, '')) + '</span><small>' + esc(dir) + sizeText(g.size) + '</small><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button></li>';
+    }).join('') || (nGames.length ? '<li class="hint pad">ไม่พบเกมที่ค้นหา</li>' : '');
+    $('#nList').hidden = !list.length && !nGames.length;
+    $('#nList').querySelectorAll('button').forEach(function (b) { b.onclick = function () { launchNative(b.dataset.p, b); }; });
+  }
+  $('#nSearch').addEventListener('input', renderGames);
+  function launchNative(path, btn) {
+    btn.disabled = true; toast('กำลังเปิด ' + nCur.app + '…');
+    api('/api/native/' + nCur.id + '/launch', { method: 'POST', body: JSON.stringify({ path: path }) })
+      .then(function () { toast('สั่งเปิด ' + nCur.app + ' แล้ว หน้าต่างอีมูอาจใช้เวลาโหลดสักครู่'); },
+            function (err) { toast('เปิดไม่สำเร็จ: ' + err.message); })
+      .then(function () { setTimeout(function () { btn.disabled = false; }, 1500); });
+  }
+  function demoApi(path) {
+    if (/\/games$/.test(path)) return { games: [
+      { path: 'ตำนานดาบสุดท้าย (แปลไทย).3ds', name: 'ตำนานดาบสุดท้าย (แปลไทย).3ds', size: 1610612736 },
+      { path: 'RPG/ดินแดนมังกรฟ้า v0.8.cia', name: 'ดินแดนมังกรฟ้า v0.8.cia', size: 734003200 },
+      { path: 'RPG/เมืองใต้เงา.cci', name: 'เมืองใต้เงา.cci', size: 2147483648 } ] };
+    if (/launch$/.test(path)) return { ok: true };
+    var o = {}; NATIVE.forEach(function (n) { o[n.id] = { exe: 'C:\\Emulators\\' + n.app, games: 'C:\\Games\\' + n.short, exe_ok: n.id === '3ds', games_ok: n.id === '3ds' }; });
+    o.psp = { exe_ok: true, games_ok: true }; return o;
   }
 
   function pickFile(sys) {
@@ -291,19 +360,21 @@
   }
 
   /* ---------- แผ่น / ข้อความ (iOS action sheet) ---------- */
-  var sheetCb = null;
+  var sheetCb = null, sheetAlt = null;
   function openSheet(title, body, o) {
     o = o || {};
     $('#sheetTitle').textContent = title; $('#sheetBody').textContent = body;
     var a = $('#sheetLink'); a.hidden = !o.link; if (o.link) { a.href = o.link; a.textContent = o.linkText; }
     var ok = $('#sheetOk'); ok.textContent = o.ok || 'ตกลง'; ok.classList.toggle('destructive', !!o.destructive);
     $('#sheetCancel').hidden = !o.cb; sheetCb = o.cb || null;
+    var alt = $('#sheetAlt'); alt.hidden = !o.alt; sheetAlt = o.alt ? o.alt.cb : null; if (o.alt) alt.textContent = o.alt.text;
     $('#sheetWrap').hidden = false; ok.focus();
   }
   function sheet(title, body, link, linkText) { openSheet(title, body, { link: link, linkText: linkText }); }
   function confirmSheet(title, body, okText, cb) { openSheet(title, body, { ok: okText, destructive: true, cb: cb }); }
-  function closeSheet() { $('#sheetWrap').hidden = true; sheetCb = null; }
+  function closeSheet() { $('#sheetWrap').hidden = true; sheetCb = null; sheetAlt = null; }
   $('#sheetOk').onclick = function () { var cb = sheetCb; closeSheet(); if (cb) cb(); };
+  $('#sheetAlt').onclick = function () { var cb = sheetAlt; closeSheet(); if (cb) cb(); };
   $('#sheetCancel').onclick = closeSheet;
   $('#sheetWrap').addEventListener('click', function (e) { if (e.target === this) closeSheet(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('#sheetWrap').hidden) closeSheet(); });
@@ -340,6 +411,7 @@
   }
 
   buildHome();
+  loadNativeStatus();
 
   /* ---------- ธีม สว่าง / มืด / อัตโนมัติ ---------- */
   var THEME_ICONS = {

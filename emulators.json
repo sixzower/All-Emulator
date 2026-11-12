@@ -1,0 +1,39 @@
+{
+  "_help": "แก้ 'exe' เป็นที่อยู่โปรแกรมอีมูในเครื่องคุณ และ 'games' เป็นโฟลเดอร์เกม (ใน Windows ใช้ \\\\ แทน \\ เช่น C:\\\\Emulators\\\\Azahar\\\\azahar.exe) แล้วรีสตาร์ท serve.py ไม่ต้องการเครื่องไหนก็ปล่อยไว้ได้",
+  "3ds": {
+    "exe": "C:\\Emulators\\Azahar\\azahar.exe",
+    "games": "C:\\Games\\3DS",
+    "ext": ["3ds", "cci", "cia", "cxi", "3dsx"],
+    "args": ["{file}"]
+  },
+  "psp": {
+    "exe": "C:\\Emulators\\PPSSPP\\PPSSPPWindows64.exe",
+    "games": "C:\\Games\\PSP",
+    "ext": ["iso", "cso", "pbp"],
+    "args": ["{file}"]
+  },
+  "ps2": {
+    "exe": "C:\\Emulators\\PCSX2\\pcsx2-qt.exe",
+    "games": "C:\\Games\\PS2",
+    "ext": ["iso", "chd", "bin", "cue"],
+    "args": ["-batch", "--", "{file}"]
+  },
+  "gc": {
+    "exe": "C:\\Emulators\\Dolphin\\Dolphin.exe",
+    "games": "C:\\Games\\GC-Wii",
+    "ext": ["iso", "rvz", "wbfs", "gcm", "ciso", "wad"],
+    "args": ["-b", "-e", "{file}"]
+  },
+  "ns": {
+    "exe": "C:\\Emulators\\Switch\\switch-emu.exe",
+    "games": "C:\\Games\\Switch",
+    "ext": ["nsp", "xci"],
+    "args": ["{file}"]
+  },
+  "dc": {
+    "exe": "C:\\Emulators\\Flycast\\flycast.exe",
+    "games": "C:\\Games\\Dreamcast",
+    "ext": ["cdi", "gdi", "chd", "cue"],
+    "args": ["{file}"]
+  }
+}

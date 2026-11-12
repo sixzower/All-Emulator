@@ -50,7 +50,7 @@
 
   <div id="groups"></div>
   <p class="empty" id="empty" hidden>ไม่พบเครื่องที่ค้นหา</p>
-  <p class="foot">ลากไฟล์เกมมาวางบนไอคอนก็เริ่มเล่นได้เลย</p>
+  <p class="foot">ลากไฟล์เกมมาวางบนไอคอนก็เริ่มเล่นได้เลย<br>เครื่องหนัก (3DS, PS2, Wii ฯลฯ) เปิดด้วยโปรแกรมอีมูในเครื่องคุณ</p>
 </main>
 
 <!-- ===== หน้าเล่นทดสอบ ===== -->
@@ -117,6 +117,23 @@
   </div>
 </section>
 
+<!-- ===== หน้ารายการเกม (เปิดด้วยโปรแกรมในเครื่อง) ===== -->
+<section id="native" class="native" hidden>
+  <header class="nav glass">
+    <button class="nav-back" id="nBack" aria-label="กลับคลัง"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span>คลัง</span></button>
+    <div class="nav-title"><b id="nTitle">—</b><span id="nSub"></span></div>
+    <span></span>
+  </header>
+  <div class="native-body">
+    <label class="search" id="nSearchWrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.500"/><path d="M16 16l4 4"/></svg>
+      <input id="nSearch" type="search" placeholder="ค้นหาเกม" autocomplete="off" aria-label="ค้นหาเกม">
+    </label>
+    <div id="nState" class="card n-state" hidden></div>
+    <ul id="nList" class="group-list n-list card"></ul>
+  </div>
+</section>
+
 <!-- ===== ดูภาพเต็มจอ ===== -->
 <div id="lb" class="lb" hidden role="dialog" aria-modal="true" aria-label="ดูภาพแคป">
   <div class="lb-top">
@@ -139,6 +156,7 @@
     <p id="sheetBody"></p>
     <a id="sheetLink" class="tint-link" target="_blank" rel="noopener" hidden></a>
     <button class="sheet-btn" id="sheetOk">ตกลง</button>
+    <button class="sheet-btn" id="sheetAlt" hidden></button>
     <button class="sheet-btn cancel" id="sheetCancel">ยกเลิก</button>
   </div>
 </div>
