@@ -714,7 +714,7 @@
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('#biosWrap').hidden = true; });
 
   /* ---------- ปุ่มควบคุมของเครื่อง ---------- */
-  var KEYS_DEF = { 0: 'X', 1: 'S', 2: 'V', 3: 'Enter', 4: '↑', 5: '↓', 6: '←', 7: '→', 8: 'Z', 9: 'A', 10: 'Q', 11: 'E' };
+  var KEYS_DEF = { 0: 'X', 1: 'S', 2: 'V', 3: 'Enter', 4: '↑', 5: '↓', 6: '←', 7: '→', 8: 'Z', 9: 'A', 10: 'Q', 11: 'E', 12: 'Tab', 13: 'R' };   // ค่าตั้งต้นจริงของ EmulatorJS 4.2 (ตรวจจากซอร์สโค้ด)
   var KC = { 8: 'Backspace', 9: 'Tab', 13: 'Enter', 16: 'Shift', 17: 'Ctrl', 18: 'Alt', 27: 'Esc', 32: 'Space', 37: '←', 38: '↑', 39: '→', 40: '↓', 186: ';', 188: ',', 190: '.', 191: '/' };
   function keyLabel(v) {
     if (typeof v === 'number') return KC[v] || ((v >= 48 && v <= 90) ? String.fromCharCode(v) : null);
