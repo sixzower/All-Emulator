@@ -413,6 +413,38 @@
   buildHome();
   loadNativeStatus();
 
+  /* ---------- ปุ่มควบคุมของเครื่อง ---------- */
+  var KEYS_DEF = { 0: 'X', 1: 'S', 2: 'V', 3: 'Enter', 4: '↑', 5: '↓', 6: '←', 7: '→', 8: 'Z', 9: 'A', 10: 'Q', 11: 'E' };
+  var KC = { 8: 'Backspace', 9: 'Tab', 13: 'Enter', 16: 'Shift', 17: 'Ctrl', 18: 'Alt', 27: 'Esc', 32: 'Space', 37: '←', 38: '↑', 39: '→', 40: '↓', 186: ';', 188: ',', 190: '.', 191: '/' };
+  function keyLabel(v) {
+    if (typeof v === 'number') return KC[v] || ((v >= 48 && v <= 90) ? String.fromCharCode(v) : null);
+    if (typeof v === 'string' && v) { var m = { 'up arrow': '↑', 'down arrow': '↓', 'left arrow': '←', 'right arrow': '→', enter: 'Enter', space: 'Space', tab: 'Tab', shift: 'Shift' }[v.toLowerCase()]; return m || (v.length === 1 ? v.toUpperCase() : v); }
+    return null;
+  }
+  function keyFor(i) {
+    try { var c = emu().controls[0][i]; var l = c && keyLabel(c.value); if (l) return l; } catch (e) {}   // อ่านค่าที่ตั้งอยู่จริงในอีมูก่อน
+    return KEYS_DEF[i] || null;
+  }
+  function openControls() {
+    if (!current) return;
+    var sys = current.system, pad = PADS[sys.id] || { keys: [] };
+    var rows = '<li><span class="lbl">ทิศทาง (D-pad)</span><span class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></span></li>';
+    pad.keys.forEach(function (k) {
+      var key = keyFor(k[1]);
+      rows += '<li><span class="lbl">' + esc(k[0]) + '</span><span class="keys">' + (key ? '<kbd>' + esc(key) + '</kbd>' : '<span class="nokey">ตั้งในเมนูอีมู</span>') + '</span></li>';
+    });
+    var notes = (pad.notes || []).slice();
+    if (pad.approx) notes.unshift('ชื่อปุ่มตรงกับเครื่องจริง แต่คีย์ที่ตรงกันอาจต่างตามเกม ถ้าไม่ตรงให้ดูในเมนูควบคุมของอีมู');
+    notes.push('เสียบจอยแล้วใช้ได้ทันที · เปลี่ยนปุ่มได้ที่ไอคอนจอยในแถบควบคุมของอีมู (ใต้จอเกม)');
+    $('#ctlTitle').textContent = 'ปุ่มควบคุม · ' + sys.name;
+    $('#ctlBody').innerHTML = '<ul class="ctl-list">' + rows + '</ul><div class="ctl-note">' + notes.map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('') + '</div>';
+    $('#ctlWrap').hidden = false; $('#ctlClose').focus();
+  }
+  $('#btnCtl').onclick = openControls;
+  $('#ctlClose').onclick = function () { $('#ctlWrap').hidden = true; };
+  $('#ctlWrap').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('#ctlWrap').hidden = true; });
+
   /* ---------- ธีม สว่าง / มืด / อัตโนมัติ ---------- */
   var THEME_ICONS = {
     auto: '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" class="solid"/>',
