@@ -54,7 +54,15 @@
 
   <div id="groups"></div>
   <p class="empty" id="empty" hidden>ไม่พบเครื่องที่ค้นหา</p>
-  <div class="foot-links"><button class="linkbtn" id="btnBios" hidden>จัดการ BIOS</button></div>
+  <section class="group tools-group">
+    <h2><span>เครื่องมือ</span></h2>
+    <button class="row-card card" id="btnBios">
+      <span class="w-ico"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2.500v3.500M15 2.500v3.500M9 18v3.500M15 18v3.500M2.500 9h3.500M2.500 15h3.500M18 9h3.500M18 15h3.500"/></svg></span>
+      <span class="row-text"><b>จัดการ BIOS</b><small>PS1 · Mega CD · Saturn</small></span>
+      <svg class="chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+    </button>
+    <p class="footnote">ลากไฟล์เกมมาวางบนไอคอนก็เริ่มเล่นได้เลย<br>ไฟล์เกมถูกอ่านในเครื่องคุณเท่านั้น ไม่ถูกอัปโหลด</p>
+  </section>
 </main>
 
 <!-- ===== หน้าเล่นทดสอบ ===== -->
@@ -181,7 +189,7 @@
 <div id="biosWrap" class="sheet-wrap" hidden>
   <div class="sheet glass ctl" role="dialog" aria-modal="true" aria-labelledby="biosTitle">
     <h2 id="biosTitle">จัดการ BIOS</h2>
-    <p class="ctl-sub">ไฟล์ถูกเก็บในโฟลเดอร์ <code>bios/</code> ในเครื่องคุณเท่านั้น ใช้ไฟล์ BIOS ที่คุณมีเอง</p>
+    <p class="ctl-sub" id="biosNote"></p>
     <ul class="ctl-list" id="biosList"></ul>
     <button class="sheet-btn" id="biosClose">ปิด</button>
   </div>

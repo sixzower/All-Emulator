@@ -540,11 +540,12 @@
   function openDB() {
     return new Promise(function (res, rej) {
       if (db) return res(db);
-      var r = indexedDB.open('all-emulator', 2);
+      var r = indexedDB.open('all-emulator', 3);
       r.onupgradeneeded = function () {
         var d = r.result;
         if (!d.objectStoreNames.contains('states')) d.createObjectStore('states');
         if (!d.objectStoreNames.contains('shots')) d.createObjectStore('shots');
+        if (!d.objectStoreNames.contains('bios')) d.createObjectStore('bios');
       };
       r.onsuccess = function () { db = r.result; res(db); };
       r.onerror = function () { rej(r.error); };
@@ -640,37 +641,61 @@
   }
 
   buildHome();
-  loadNativeStatus().then(function (st) {
-    // ลิงก์ "จัดการ BIOS" ต้องใช้ serve.py: แสดงเฉพาะตอนรันในเครื่องจริง (เว็บออนไลน์และพรีวิวไม่แสดง)
-    if (st && !DEMO) $('#btnBios').hidden = false; else $('#btnBios').remove();
-  });
+  loadNativeStatus();
 
-  /* ---------- BIOS (เก็บเป็นไฟล์ในโฟลเดอร์ bios/ ผ่าน serve.py) ---------- */
+  /* ---------- BIOS ----------
+     รันด้วย serve.py: เก็บเป็นไฟล์ในโฟลเดอร์ bios/ · เว็บออนไลน์: เก็บในเบราว์เซอร์ (IndexedDB) ไม่ถูกอัปโหลดไปที่ไหน
+     EmulatorJS รับไฟล์ BIOS เป็น File ได้ และคงชื่อไฟล์เดิมไว้ให้ */
+  function serverOn() { return !!nativeStatus && !DEMO; }
+  var memBios = {};   // สำรอง เมื่อเบราว์เซอร์ไม่ให้ใช้ IndexedDB
   function biosPath(id, info) { return 'bios/' + id + '/' + encodeURIComponent(info.name); }
+  var biosStore = {
+    list: function () {
+      if (serverOn()) return api('api/bios');
+      var out = function (rows) { var o = {}; rows.forEach(function (r) { o[r.id] = { name: r.name, size: r.size }; }); return o; };
+      return idb('readonly', function (st) { return st.getAll(); }, 'bios').then(out, function () { return out(Object.keys(memBios).map(function (k) { return memBios[k]; })); });
+    },
+    put: function (id, file) {
+      if (serverOn()) return api('api/bios/' + id + '?name=' + encodeURIComponent(file.name), { method: 'POST', body: file });
+      var rec = { id: id, name: file.name, size: file.size, blob: file }, ok = { name: rec.name, size: rec.size };
+      return idb('readwrite', function (st) { return st.put(rec, id); }, 'bios').then(function () { return ok; }, function () { memBios[id] = rec; return ok; });
+    },
+    del: function (id) {
+      if (serverOn()) return api('api/bios/' + id, { method: 'DELETE' });
+      delete memBios[id];
+      return idb('readwrite', function (st) { return st.delete(id); }, 'bios').then(function () { return { ok: true }; }, function () { return { ok: true }; });
+    },
+    ref: function (id, info) {   // ค่าที่ส่งให้อีมู: ที่อยู่ไฟล์ (serve.py) หรือ File (ในเบราว์เซอร์)
+      if (serverOn()) return Promise.resolve(biosPath(id, info));
+      var mk = function (r) { return r ? new File([r.blob], r.name) : null; };
+      return idb('readonly', function (st) { return st.get(id); }, 'bios').then(mk, function () { return mk(memBios[id]); });
+    }
+  };
+  function biosWhere() { return serverOn() ? 'โฟลเดอร์ bios/ ในเครื่องคุณ' : 'เบราว์เซอร์ของคุณ (ไม่ถูกอัปโหลดไปที่ไหน)'; }
   function pickBios(id, done) {
     var inp = document.createElement('input'); inp.type = 'file';
     inp.onchange = function () {
       var f = inp.files[0]; if (!f) return;
-      api('api/bios/' + id + '?name=' + encodeURIComponent(f.name), { method: 'POST', body: f })
-        .then(function (j) { toast('บันทึก BIOS แล้ว'); done(j); }, function (e) { toast('บันทึก BIOS ไม่สำเร็จ: ' + e.message); });
+      biosStore.put(id, f).then(function (j) { toast('บันทึก BIOS แล้ว'); done(j); }, function (e) { toast('บันทึก BIOS ไม่สำเร็จ: ' + e.message); });
     };
     inp.click();
   }
   function ensureBios(sys, go) {
     var b = BIOS[sys.id];
     if (!b || DEMO) return go(null);
-    api('api/bios').then(function (info) {
-      if (info[sys.id]) return go(biosPath(sys.id, info[sys.id]));
+    biosStore.list().then(function (info) {
+      if (info[sys.id]) return biosStore.ref(sys.id, info[sys.id]).then(go);
       openSheet(b.optional ? 'ใส่ BIOS ไหม? (ไม่บังคับ)' : 'เครื่องนี้ต้องใช้ BIOS',
-        (b.optional ? 'เล่นได้โดยไม่ใช้ BIOS แต่บางเกมจะทำงานได้ดีกว่าถ้ามี' : 'เลือกไฟล์ BIOS ของ ' + b.label + ' ที่คุณมี') + ' (' + b.hint + ') ไฟล์จะถูกเก็บไว้ในโฟลเดอร์ bios/ ในเครื่องคุณ ครั้งหน้าไม่ต้องเลือกซ้ำ',
-        { ok: 'เลือกไฟล์ BIOS', cb: function () { pickBios(sys.id, function (j) { go(biosPath(sys.id, j)); }); },
+        (b.optional ? 'เล่นได้โดยไม่ใช้ BIOS แต่บางเกมจะทำงานได้ดีกว่าถ้ามี' : 'เลือกไฟล์ BIOS ของ ' + b.label + ' ที่คุณมี') + ' (' + b.hint + ') ไฟล์จะถูกเก็บไว้ใน' + biosWhere() + ' ครั้งหน้าไม่ต้องเลือกซ้ำ',
+        { ok: 'เลือกไฟล์ BIOS', cb: function () { pickBios(sys.id, function (j) { biosStore.ref(sys.id, j).then(go); }); },
           alt: b.optional ? { text: 'เล่นโดยไม่ใช้ BIOS', cb: function () { go(null); } } : null });
-    }, function () { go(null); });   // เปิดไม่ผ่าน serve.py ก็เล่นต่อโดยไม่ใช้ BIOS
+    }, function () { go(null); });
   }
   function openBiosMgr() {
     $('#biosWrap').hidden = false; $('#biosClose').focus();
+    $('#biosNote').textContent = 'ไฟล์ถูกเก็บใน' + biosWhere() + ' ใช้ไฟล์ BIOS ที่คุณมีเอง' + (serverOn() ? '' : ' ถ้าล้างข้อมูลเบราว์เซอร์ต้องเลือกไฟล์ใหม่');
     var ul = $('#biosList'); ul.innerHTML = '<li><span class="nokey">กำลังตรวจสอบ…</span></li>';
-    api('api/bios').then(function (info) {
+    biosStore.list().then(function (info) {
       ul.innerHTML = Object.keys(BIOS).map(function (id) {
         var i = info[id], b = BIOS[id];
         return '<li><span class="lbl">' + esc(b.label) + '<small>' + (i ? esc(i.name) + ' · ' + sizeText(i.size) : (b.optional ? 'ยังไม่มี (ไม่บังคับ)' : 'ยังไม่มี (จำเป็น)')) + '</small></span><span class="b-act"><button data-a="pick" data-id="' + id + '">' + (i ? 'เปลี่ยน' : 'เลือกไฟล์') + '</button>' + (i ? '<button class="danger" data-a="del" data-id="' + id + '">ลบ</button>' : '') + '</span></li>';
@@ -678,10 +703,10 @@
       ul.querySelectorAll('button').forEach(function (bt) {
         bt.onclick = function () {
           if (bt.dataset.a === 'pick') pickBios(bt.dataset.id, openBiosMgr);
-          else api('api/bios/' + bt.dataset.id, { method: 'DELETE' }).then(function () { toast('ลบ BIOS แล้ว'); openBiosMgr(); }, function (e) { toast('ลบไม่สำเร็จ: ' + e.message); });
+          else biosStore.del(bt.dataset.id).then(function () { toast('ลบ BIOS แล้ว'); openBiosMgr(); }, function (e) { toast('ลบไม่สำเร็จ: ' + e.message); });
         };
       });
-    }, function () { ul.innerHTML = '<li><span class="nokey">จัดการ BIOS ได้เฉพาะตอนรันในเครื่องด้วย python serve.py (เวอร์ชันออนไลน์ทำไม่ได้)</span></li>'; });
+    }, function () { ul.innerHTML = '<li><span class="nokey">อ่านรายการ BIOS ไม่ได้</span></li>'; });
   }
   $('#btnBios').onclick = openBiosMgr;
   $('#biosClose').onclick = function () { $('#biosWrap').hidden = true; };
