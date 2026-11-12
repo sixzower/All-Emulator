@@ -41,7 +41,7 @@ svg.fill,svg .solid{fill:currentColor;stroke:none}
 .card{background:var(--card);border-radius:22px;box-shadow:var(--shadow)}
 
 /* ---------- หน้าคลัง ---------- */
-.home{max-width:940px;margin:0 auto;padding:0 20px 56px}
+.home{max-width:940px;margin:0 auto;padding:0 20px 40px}
 .home-bar{position:sticky;top:0;z-index:20;margin:0 -20px calc(-48px - env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) 20px 0;height:calc(48px + env(safe-area-inset-top,0px));display:flex;align-items:center;justify-content:space-between;gap:12px;border-width:0 0 .5px;pointer-events:none;
   background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;border-color:transparent;transition:background .25s,border-color .25s}
 .home-bar.scrolled{pointer-events:auto;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(28px);backdrop-filter:saturate(180%) blur(28px);border-color:var(--hair)}
@@ -341,3 +341,8 @@ kbd{font-family:inherit;font-size:13px;font-weight:600;min-width:30px;text-align
 .info-card{cursor:default}
 .info-card:active{transform:none;background:var(--card)}
 @media(max-width:640px){.tools-grid{grid-template-columns:1fr}}
+
+.badge{flex:none;font-size:11.5px;font-weight:600;color:var(--mut);background:var(--fill);border-radius:99px;padding:2px 10px}
+.credit{margin:26px 0 0;text-align:center;font-size:12px;color:var(--mut)}
+.credit a{color:inherit;font-weight:600;text-decoration:none;border-bottom:.5px solid var(--hair)}
+.credit a:hover{color:var(--fg)}
