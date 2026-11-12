@@ -244,12 +244,32 @@
       window.EJS_startOnLoaded = true;
       window.EJS_color = '#0a84ff';
       window.EJS_threads = !!(sys.threads && window.crossOriginIsolated);
+      presetFastForward(sys.core, window.EJS_gameName);
+      window.EJS_ready = setFastForwardDefault;
       window.EJS_onGameStart = function () { $('#loading').hidden = true; };
       var s = document.createElement('script');
       s.src = base + 'loader.js';
       s.onerror = function () { $('#loading').classList.add('failed'); $('#loadMsg').textContent = 'โหลดอีมูเลเตอร์ไม่ได้ ตรวจสอบอินเทอร์เน็ต หรือดูวิธีใช้ออฟไลน์ใน README'; };
       document.body.appendChild(s);
     });
+  }
+  /* ปุ่ม Fast Forward = Space เป็นค่าตั้งต้นของทุกเครื่อง
+     (EmulatorJS: ปุ่มลำดับที่ 27 = FAST FORWARD · เก็บการตั้งค่าแยกตามเกม จึงต้องใส่ให้ทั้งเกมใหม่และเกมที่เคยตั้งค่าไว้แล้ว) */
+  var FF_INDEX = 27;
+  function setFastForwardDefault() {   // เกมที่ยังไม่เคยตั้งปุ่ม: แก้ค่าตั้งต้นของอีมู (ทำก่อนสร้างเมนูตั้งค่าปุ่ม)
+    try {
+      var d = window.EJS_emulator.defaultControllers;
+      if (d && d[0]) d[0][FF_INDEX] = Object.assign({}, d[0][FF_INDEX], { value: 'space' });
+    } catch (e) {}
+  }
+  function presetFastForward(core, gameName) {   // เกมที่เคยเปิดแล้วและมีการตั้งค่าเก็บไว้: ถ้ายังไม่มีปุ่ม Fast Forward ให้ใส่ Space (รหัสปุ่ม 32)
+    try {
+      var key = 'ejs-1-' + core + '-' + gameName + '-settings', raw = localStorage.getItem(key);
+      if (!raw) return;
+      var o = JSON.parse(raw), c = o.controlSettings && o.controlSettings[0];
+      if (!c) return;
+      if (!c[FF_INDEX] || !c[FF_INDEX].value) { c[FF_INDEX] = Object.assign({}, c[FF_INDEX], { value: 32 }); localStorage.setItem(key, JSON.stringify(o)); }
+    } catch (e) {}
   }
   function probe(url) {
     return fetch(url, { method: 'HEAD' }).then(function (r) { return r.ok; }, function () { return false; });
@@ -744,6 +764,16 @@
   $('#biosWrap').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('#biosWrap').hidden = true; });
 
+  /* ---------- Space ใช้เป็นปุ่ม Fast Forward: กันไม่ให้ไปกดปุ่มที่โฟกัสอยู่หรือเลื่อนหน้า ---------- */
+  function spaceGuard(e) {
+    if (e.key !== ' ' || $('#play').hidden) return;
+    if (!$('#lb').hidden || !$('#sheetWrap').hidden || !$('#ctlWrap').hidden || !$('#biosWrap').hidden) return;
+    var t = e.target; if (t && (/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName) || t.isContentEditable)) return;   // พิมพ์โน้ตยังเว้นวรรคได้ตามปกติ
+    e.preventDefault();   // ไม่ใช้ stopPropagation เพื่อให้อีมูยังรับปุ่มนี้ได้
+  }
+  document.addEventListener('keydown', spaceGuard, true);
+  document.addEventListener('keyup', spaceGuard, true);
+
   /* ---------- ปุ่มลัด: กด Shift = แคปจอ ---------- */
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Shift' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -777,7 +807,7 @@
     if (pad.approx) notes.unshift('ชื่อปุ่มตรงกับเครื่องจริง แต่คีย์ที่ตรงกันอาจต่างตามเกม ถ้าไม่ตรงให้ดูในเมนูควบคุมของอีมู');
     notes.push('เสียบจอยแล้วใช้ได้ทันที · เปลี่ยนปุ่มได้ที่ไอคอนจอยในแถบควบคุมของอีมู (ใต้จอเกม)');
     $('#ctlTitle').textContent = 'ปุ่มควบคุม · ' + sys.name;
-    $('#ctlBody').innerHTML = '<ul class="ctl-list">' + rows + '</ul><div class="ctl-note">' + notes.map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('') + '</div><p class="ctl-sub">ปุ่มลัดของเว็บ</p><ul class="ctl-list"><li><span class="lbl">แคปจอ</span><span class="keys"><kbd>Shift</kbd></span></li></ul>';
+    $('#ctlBody').innerHTML = '<ul class="ctl-list">' + rows + '</ul><div class="ctl-note">' + notes.map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('') + '</div><p class="ctl-sub">ปุ่มลัด</p><ul class="ctl-list"><li><span class="lbl">เร่งความเร็ว (Fast Forward)</span><span class="keys"><kbd>Space</kbd></span></li><li><span class="lbl">แคปจอ</span><span class="keys"><kbd>Shift</kbd></span></li></ul>';
     $('#ctlWrap').hidden = false; $('#ctlClose').focus();
   }
   $('#btnCtl').onclick = openControls;
