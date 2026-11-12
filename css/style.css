@@ -321,3 +321,5 @@ kbd{font-family:inherit;font-size:13px;font-weight:600;min-width:30px;text-align
   .hero-icon{order:0}.hero-text{order:1}.hero .theme-btn{order:2;align-self:flex-start}
   .hero .search{order:3;flex:1 1 100%}
 }
+
+.foot2{margin-top:14px}
