@@ -241,7 +241,6 @@ kbd{font-family:inherit;font-size:13px;font-weight:600;min-width:30px;text-align
 .ctl-note b{color:var(--fg)}
 
 /* ---------- ปุ่มลัด/ซูม/แนบภาพ/วาดบนภาพ/BIOS ---------- */
-.screen.pix canvas{image-rendering:pixelated}
 .linkbtn{display:block;margin:22px auto 0;color:var(--mut);font-size:13px;font-weight:500;padding:6px 12px;border-radius:99px}
 .linkbtn:hover{color:var(--fg);background:var(--fill)}
 .attach{grid-column:1/-1;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--mut);min-height:0}

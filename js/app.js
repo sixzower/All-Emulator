@@ -149,7 +149,7 @@
     $('#play').hidden = false;
     $('#gameTitle').textContent = file.name.replace(/\.[^.]+$/, '');
     $('#gameSys').textContent = sys.name;
-    loadNotes(); renderSlots(); loadShots(); applyZoom();
+    loadNotes(); renderSlots(); loadShots();
     if (sys.heavy) toast('เครื่องนี้ใช้แรงเครื่อง ถ้ากระตุกลองปิดแท็บอื่นก่อน');
 
     if (DEMO) return demoGame();
@@ -449,28 +449,6 @@
     a.download = 'notes-' + current.file.name.replace(/\.[^.]+$/, '') + '.txt'; a.click();
   };
 
-  /* ---------- ส่งออกรายงาน (ไฟล์ HTML ไฟล์เดียว มีโน้ตและภาพ ส่งต่อได้) ---------- */
-  function toDataURL(b) { return new Promise(function (r) { var f = new FileReader(); f.onload = function () { r(f.result); }; f.readAsDataURL(b); }); }
-  $('#btnReport').onclick = function () {
-    toast('กำลังสร้างรายงาน…');
-    Promise.all(shots.map(function (s) { return toDataURL(s.blob).then(function (u) { return { id: s.id, url: u }; }); })).then(function (imgs) {
-      var map = {}; imgs.forEach(function (i) { map[i.id] = i.url; });
-      var list = notes.slice().reverse(), counts = {}, COL = { 'ฟอนต์': '#ff3b30', 'คำผิด': '#ff3b30', 'ข้อความล้น': '#ff9500', 'สระ/วรรณยุกต์': '#ff9500', 'ผ่าน': '#34c759' };
-      list.forEach(function (n) { counts[n.tag] = (counts[n.tag] || 0) + 1; });
-      var chips = Object.keys(counts).map(function (t) { return '<span class="chip" style="--c:' + (COL[t] || '#888') + '">' + esc(t) + ' ' + counts[t] + '</span>'; }).join('');
-      var rows = list.map(function (n, i) {
-        return '<li><div class="top"><b>' + (i + 1) + '.</b><span class="tag" style="--c:' + (COL[n.tag] || '#888') + '">' + esc(n.tag) + '</span><span class="time">' + esc(n.time) + '</span></div><p>' + esc(n.text) + '</p>' +
-          (n.shot != null && map[n.shot] ? '<figure><img src="' + map[n.shot] + '" alt="ภาพ #' + n.shot + '"><figcaption>ภาพ #' + n.shot + '</figcaption></figure>' : '') + '</li>';
-      }).join('') || '<li><p>ยังไม่มีโน้ต</p></li>';
-      var all = shots.slice().reverse().map(function (s) { return '<figure><img src="' + map[s.id] + '" alt=""><figcaption>#' + s.id + '</figcaption></figure>'; }).join('');
-      var d = new Date(), title = baseName();
-      var css = ':root{color-scheme:light dark;--bg:#f2f2f7;--card:#fff;--fg:#111;--mut:#666}@media(prefers-color-scheme:dark){:root{--bg:#000;--card:#1c1c1e;--fg:#f5f5f7;--mut:#999}}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 -apple-system,"Noto Sans Thai","Sukhumvit Set",system-ui,sans-serif;padding:24px 16px}main{max-width:820px;margin:0 auto}h1{font-size:28px;margin:0 0 4px}h2{margin:32px 0 10px;font-size:19px}.meta{color:var(--mut);margin:0 0 14px}.chip,.tag{display:inline-block;font-size:12px;font-weight:600;padding:1px 10px;border-radius:99px;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent);margin:0 6px 6px 0}ol{list-style:none;margin:0;padding:0;display:grid;gap:12px}li{background:var(--card);border-radius:16px;padding:14px 16px}.top{display:flex;gap:8px;align-items:center}.time{margin-left:auto;color:var(--mut);font-size:12px}p{margin:6px 0}figure{margin:8px 0 0}img{max-width:100%;border-radius:10px;image-rendering:pixelated;background:#000}figcaption{font-size:12px;color:var(--mut)}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}.grid figure{margin:0}';
-      var html = '<!doctype html><html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>รายงานทดสอบ ' + esc(title) + '</title><style>' + css + '</style><main><h1>รายงานทดสอบการแปล</h1><p class="meta">' + esc(title) + ' · ' + esc(current.system.name) + ' · ' + d.toLocaleDateString('th-TH') + ' ' + d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + '</p><div>' + chips + '</div><h2>รายการโน้ต (' + list.length + ')</h2><ol>' + rows + '</ol>' + (all ? '<h2>ภาพแคปทั้งหมด (' + shots.length + ')</h2><div class="grid">' + all + '</div>' : '') + '</main>';
-      download(new Blob([html], { type: 'text/html;charset=utf-8' }), 'report-' + title + '.html');
-      toast('ส่งออกรายงานแล้ว');
-    });
-  };
-
   /* ---------- เซฟด่วน 4 ช่อง (IndexedDB) ---------- */
   function openDB() {
     return new Promise(function (res, rej) {
@@ -612,36 +590,6 @@
   $('#biosWrap').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('#biosWrap').hidden = true; });
 
-  /* ---------- ขนาดภาพ: พอดี / พิกเซลคม / ×2 ×3 ×4 ---------- */
-  var ZOOMS = ['fit', 'int', 2, 3, 4], zoomI = 0;
-  try { var zv = localStorage.getItem('ae-zoom'); if (zv && ZOOMS.indexOf(isNaN(+zv) ? zv : +zv) > -1) zoomI = ZOOMS.indexOf(isNaN(+zv) ? zv : +zv); } catch (e) {}
-  function zoomLabel(m) { return m === 'fit' ? 'พอดี' : m === 'int' ? 'พิกเซลคม' : '×' + m; }
-  function applyZoom(say) {
-    var m = ZOOMS[zoomI], box = $('.screen'), el = $('#ejs'), res = current && RES[current.system.id];
-    $('#zoomLbl').textContent = zoomLabel(m);
-    if (m === 'fit' || !res) { el.style.cssText = ''; box.classList.remove('pix'); window.dispatchEvent(new Event('resize')); if (say) toast('ขนาดภาพ: พอดีกับหน้าจอ'); return; }
-    var max = Math.max(1, Math.floor(Math.min(box.clientWidth / res[0], box.clientHeight / res[1])));
-    var n = m === 'int' ? max : Math.min(m, max);
-    el.style.cssText = 'inset:auto;left:50%;top:50%;transform:translate(-50%,-50%);width:' + res[0] * n + 'px;height:' + res[1] * n + 'px';
-    box.classList.add('pix'); window.dispatchEvent(new Event('resize'));
-    if (say) toast('ขนาดภาพ: ' + zoomLabel(m) + (m !== 'int' && m > max ? ' (จอไม่พอ ใช้ ×' + n + ')' : ' = ' + res[0] * n + '×' + res[1] * n));
-  }
-  $('#btnZoom').onclick = function () {
-    zoomI = (zoomI + 1) % ZOOMS.length;
-    try { localStorage.setItem('ae-zoom', ZOOMS[zoomI]); } catch (e) {}
-    applyZoom(true);
-  };
-  if (window.ResizeObserver) new ResizeObserver(function () { if (current && ZOOMS[zoomI] !== 'fit') applyZoom(); }).observe($('.screen'));
-
-  /* ---------- ปุ่มลัดคีย์บอร์ดของเว็บ ---------- */
-  document.addEventListener('keydown', function (e) {
-    if ($('#play').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (!$('#lb').hidden || !$('#sheetWrap').hidden || !$('#ctlWrap').hidden || !$('#biosWrap').hidden) return;
-    var t = e.target; if (t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
-    var act = { F6: function () { slotSave(1); }, F7: function () { slotLoad(1); }, F8: function () { $('#btnShot').click(); }, F9: function () { $('#btnFast').click(); } }[e.key];
-    if (act) { e.preventDefault(); act(); }
-  });
-
   /* ---------- ปุ่มควบคุมของเครื่อง ---------- */
   var KEYS_DEF = { 0: 'X', 1: 'S', 2: 'V', 3: 'Enter', 4: '↑', 5: '↓', 6: '←', 7: '→', 8: 'Z', 9: 'A', 10: 'Q', 11: 'E' };
   var KC = { 8: 'Backspace', 9: 'Tab', 13: 'Enter', 16: 'Shift', 17: 'Ctrl', 18: 'Alt', 27: 'Esc', 32: 'Space', 37: '←', 38: '↑', 39: '→', 40: '↓', 186: ';', 188: ',', 190: '.', 191: '/' };
@@ -666,8 +614,7 @@
     if (pad.approx) notes.unshift('ชื่อปุ่มตรงกับเครื่องจริง แต่คีย์ที่ตรงกันอาจต่างตามเกม ถ้าไม่ตรงให้ดูในเมนูควบคุมของอีมู');
     notes.push('เสียบจอยแล้วใช้ได้ทันที · เปลี่ยนปุ่มได้ที่ไอคอนจอยในแถบควบคุมของอีมู (ใต้จอเกม)');
     $('#ctlTitle').textContent = 'ปุ่มควบคุม · ' + sys.name;
-    var web = [['เซฟด่วน (ช่อง 1)', 'F6'], ['โหลดเซฟด่วน (ช่อง 1)', 'F7'], ['แคปจอ', 'F8'], ['เร่งความเร็ว เปิด/ปิด', 'F9']].map(function (r) { return '<li><span class="lbl">' + r[0] + '</span><span class="keys"><kbd>' + r[1] + '</kbd></span></li>'; }).join('');
-    $('#ctlBody').innerHTML = '<ul class="ctl-list">' + rows + '</ul><div class="ctl-note">' + notes.map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('') + '</div><p class="ctl-sub">ปุ่มลัดของเว็บ (ใช้ได้ตอนเล่น)</p><ul class="ctl-list">' + web + '</ul>';
+    $('#ctlBody').innerHTML = '<ul class="ctl-list">' + rows + '</ul><div class="ctl-note">' + notes.map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('') + '</div>';
     $('#ctlWrap').hidden = false; $('#ctlClose').focus();
   }
   $('#btnCtl').onclick = openControls;
