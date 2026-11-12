@@ -283,15 +283,24 @@
   function shutterSound() {
     if (!actx) return;
     try {
+      // เสียงเบาแบบแคปจอมือถือ: ชัตเตอร์สั้นๆ ครั้งเดียว (คลิกเปิด + คลิกปิดที่นุ่มกว่า) ผ่านตัวกรองความถี่สูงออกให้ไม่แหลม
       var t = actx.currentTime;
+      var master = actx.createGain(), soft = actx.createBiquadFilter();
+      master.gain.value = 0.22; soft.type = 'lowpass'; soft.frequency.value = 5200;
+      master.connect(soft); soft.connect(actx.destination);
       var click = function (at, freq, dur, vol) {
         var n = Math.floor(actx.sampleRate * dur), buf = actx.createBuffer(1, n, actx.sampleRate), d = buf.getChannelData(0);
-        for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
+        for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.5);
         var src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
-        src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 1.2; g.gain.value = vol;
-        src.connect(f); f.connect(g); g.connect(actx.destination); src.start(at);
+        src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 0.9; g.gain.value = vol;
+        src.connect(f); f.connect(g); g.connect(master); src.start(at);
       };
-      click(t, 3200, 0.05, 0.9); click(t + 0.075, 1800, 0.09, 0.7);   // ชัตเตอร์เปิด-ปิด
+      click(t, 2600, 0.03, 0.8);         // คลิกเปิด
+      click(t + 0.048, 1500, 0.06, 0.5); // คลิกปิด (เบากว่า)
+      var o = actx.createOscillator(), og = actx.createGain();   // เสียงติ๊กเบาๆ ให้ได้ความรู้สึกเหมือนกล้องมือถือ
+      o.type = 'sine'; o.frequency.setValueAtTime(1900, t); o.frequency.exponentialRampToValueAtTime(950, t + 0.04);
+      og.gain.setValueAtTime(0.18, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+      o.connect(og); og.connect(master); o.start(t); o.stop(t + 0.06);
     } catch (e) {}
   }
   $('#btnShot').onclick = function () {
