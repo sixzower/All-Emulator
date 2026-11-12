@@ -641,11 +641,8 @@
 
   buildHome();
   loadNativeStatus().then(function (st) {
-    // หน้าตาเหมือนกันทั้งรันในเครื่องและบนเว็บออนไลน์ ต่างกันแค่เมื่อไม่มี serve.py (Vercel / GitHub Pages)
-    // ไอคอนเครื่องหนักจะบอกว่า "ต้องรันในเครื่อง" และมีข้อความอธิบายเมื่อกด
-    if (st || DEMO) return;
-    document.querySelectorAll('.native-group .app .sub').forEach(function (x) { x.textContent = 'ต้องรันในเครื่อง'; });
-    $('#footWeb').hidden = false;
+    // ลิงก์ "จัดการ BIOS" ต้องใช้ serve.py: แสดงเฉพาะตอนรันในเครื่องจริง (เว็บออนไลน์และพรีวิวไม่แสดง)
+    if (st && !DEMO) $('#btnBios').hidden = false; else $('#btnBios').remove();
   });
 
   /* ---------- BIOS (เก็บเป็นไฟล์ในโฟลเดอร์ bios/ ผ่าน serve.py) ---------- */
