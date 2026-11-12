@@ -79,8 +79,7 @@ svg.fill,svg .solid{fill:currentColor;stroke:none}
 .group{margin-bottom:22px}
 .group h2{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:13px;font-weight:600;color:var(--mut);margin:0 16px 8px;text-transform:uppercase;letter-spacing:.04em}
 .group h2 em{font-style:normal;font-weight:500;font-size:12px;text-transform:none;letter-spacing:0;opacity:.85}
-.grid{display:flex;flex-wrap:wrap;justify-content:center;gap:24px 10px;padding:24px 14px}
-.grid>.app{width:100px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:24px 10px;padding:24px 14px}
 .app{display:flex;flex-direction:column;align-items:center;gap:8px;padding:2px;transition:transform .25s cubic-bezier(.2,.9,.3,1.3)}
 .app:hover .icon{transform:translateY(-2px)}
 .app:active{transform:scale(.9)}
@@ -104,7 +103,7 @@ svg.fill,svg .solid{fill:currentColor;stroke:none}
   .widget .w-ico{margin:0;grid-row:1/3}
   .widget b{font-size:16px;grid-column:2;align-self:end}
   .widget small{grid-column:2;align-self:start}
-  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px 2px;padding:20px 8px}.grid>.app{width:auto}.icon{width:64px;height:64px}
+  .grid{grid-template-columns:repeat(4,1fr);gap:22px 2px;padding:20px 8px}.icon{width:64px;height:64px}
 }
 
 /* ---------- หน้าเล่น ---------- */
