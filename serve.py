@@ -3,7 +3,7 @@
 - เสิร์ฟหน้าเว็บ (เข้าได้เฉพาะเครื่องนี้ที่ 127.0.0.1)
 - โหมด "เปิดด้วยโปรแกรมในเครื่อง": อ่านรายการเกมจากโฟลเดอร์ที่ตั้งใน emulators.json แล้วสั่งเปิดอีมู (3DS, PS2, Wii ฯลฯ)
 --isolate เปิด header ที่ core บางตัว (เช่น PSP) ต้องใช้ แต่ทำให้โหลดอีมูจาก CDN ไม่ได้ ใช้ร่วมกับโหมดออฟไลน์ใน README เท่านั้น"""
-import json, os, subprocess, sys
+import json, os, re, shutil, subprocess, sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -14,6 +14,25 @@ args = [a for a in sys.argv[1:] if not a.startswith("--")]
 PORT = int(args[0]) if args else 8000
 CONFIG = os.environ.get("AE_CONFIG", os.path.join(HERE, "emulators.json"))
 MAX_DEPTH, MAX_FILES = 4, 3000
+BIOS_IDS = {"psx", "scd", "sat"}                       # เครื่องที่มีช่องใส่ BIOS
+BIOS_DIR = os.path.join(HERE, "bios")
+MAX_BIOS = 32 * 1024 * 1024
+
+
+def bios_info():
+    out = {}
+    for i in BIOS_IDS:
+        d = os.path.join(BIOS_DIR, i)
+        files = sorted(os.listdir(d)) if os.path.isdir(d) else []
+        if files:
+            out[i] = {"name": files[0], "size": os.path.getsize(os.path.join(d, files[0]))}
+    return out
+
+
+def bios_clear(i):
+    d = os.path.join(BIOS_DIR, i)
+    if os.path.isdir(d):
+        shutil.rmtree(d)
 
 
 def load_config():
@@ -100,8 +119,10 @@ class H(SimpleHTTPRequestHandler):
             return super().do_GET()
         if not self._guard():
             return
-        cfg = load_config()
         parts = u.path.strip("/").split("/")          # api native [id games]
+        if parts == ["api", "bios"]:
+            return self._json(200, bios_info())
+        cfg = load_config()
         if parts[:2] == ["api", "native"] and len(parts) == 2:
             return self._json(200, {k: status(v) for k, v in cfg.items()})
         if parts[:2] == ["api", "native"] and len(parts) == 4 and parts[3] == "games":
@@ -114,10 +135,12 @@ class H(SimpleHTTPRequestHandler):
     def do_POST(self):
         u = urlparse(self.path)
         parts = u.path.strip("/").split("/")
-        if not (parts[:2] == ["api", "native"] and len(parts) == 4 and parts[3] == "launch"):
-            return self._json(404, {"error": "not found"})
         if not self._guard():
             return
+        if len(parts) == 3 and parts[:2] == ["api", "bios"] and parts[2] in BIOS_IDS:
+            return self._bios_upload(parts[2], parse_qs(u.query).get("name", ["bios.bin"])[0])
+        if not (parts[:2] == ["api", "native"] and len(parts) == 4 and parts[3] == "launch"):
+            return self._json(404, {"error": "not found"})
         try:
             n = int(self.headers.get("Content-Length", "0"))
             rel = json.loads(self.rfile.read(min(n, 4096)) or b"{}").get("path", "")
@@ -138,6 +161,31 @@ class H(SimpleHTTPRequestHandler):
             return self._json(500, {"error": f"เปิดโปรแกรมไม่ได้: {ex}"})
         print(f"เปิด: {os.path.basename(e['exe'])} ← {os.path.basename(game)}")
         self._json(200, {"ok": True})
+
+    def _bios_upload(self, i, name):
+        try:
+            n = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            return self._json(400, {"error": "bad request"})
+        if n <= 0 or n > MAX_BIOS:
+            return self._json(400, {"error": "ไฟล์ว่างหรือใหญ่เกิน 32 MB"})
+        name = re.sub(r"[^A-Za-z0-9._ -]", "_", os.path.basename(name))[:80].strip(". ") or "bios.bin"
+        data = self.rfile.read(n)
+        bios_clear(i)
+        os.makedirs(os.path.join(BIOS_DIR, i), exist_ok=True)
+        with open(os.path.join(BIOS_DIR, i, name), "wb") as f:
+            f.write(data)
+        print(f"บันทึก BIOS {i}: {name} ({n} ไบต์)")
+        self._json(200, {"name": name, "size": n})
+
+    def do_DELETE(self):
+        parts = urlparse(self.path).path.strip("/").split("/")
+        if not self._guard():
+            return
+        if len(parts) == 3 and parts[:2] == ["api", "bios"] and parts[2] in BIOS_IDS:
+            bios_clear(parts[2])
+            return self._json(200, {"ok": True})
+        self._json(404, {"error": "not found"})
 
 
 if __name__ == "__main__":

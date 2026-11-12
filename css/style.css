@@ -239,3 +239,33 @@ kbd{font-family:inherit;font-size:13px;font-weight:600;min-width:30px;text-align
 .nokey{font-size:12.5px;color:var(--mut)}
 .ctl-note{margin:0;padding:10px 14px;border-radius:14px;background:var(--fill2);font-size:13px;color:var(--mut);display:grid;gap:4px}
 .ctl-note b{color:var(--fg)}
+
+/* ---------- ปุ่มลัด/ซูม/แนบภาพ/วาดบนภาพ/BIOS ---------- */
+.screen.pix canvas{image-rendering:pixelated}
+.linkbtn{display:block;margin:22px auto 0;color:var(--mut);font-size:13px;font-weight:500;padding:6px 12px;border-radius:99px}
+.linkbtn:hover{color:var(--fg);background:var(--fill)}
+.attach{grid-column:1/-1;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--mut);min-height:0}
+.attach:empty{display:none}
+.attach img{width:48px;height:32px;border-radius:7px;object-fit:cover;image-rendering:pixelated;background:#000}
+.attach span{flex:1}
+.attach .x{color:var(--danger);font-size:14px;padding:4px 8px}
+.attach .linkbtn{margin:0;padding:2px 0;text-align:left;color:var(--fg)}
+.group-list li.has-shot .nbody{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.nthumb{flex:none;width:72px;height:48px;border-radius:9px;overflow:hidden;background:#000;box-shadow:0 0 0 .5px var(--hair)}
+.nthumb img{width:100%;height:100%;object-fit:cover;display:block;image-rendering:pixelated}
+.lb-right{display:flex;gap:8px}
+.lb-draw{position:absolute;inset:0;width:100%;height:100%;border-radius:18px;cursor:crosshair;touch-action:none}
+.lb.annotating .lb-nav,.lb.annotating .lb-fig .del,.lb.annotating .lb-right{visibility:hidden}
+.lb-ann{position:absolute;bottom:max(20px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:99px;background:rgba(60,60,66,.7);color:#fff;border-color:rgba(255,255,255,.12);animation:up .3s cubic-bezier(.2,.9,.3,1.1);--tx:-50%;white-space:nowrap}
+.lb-ann .swatch{width:26px;height:26px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+.lb-ann .swatch.on{box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(255,255,255,.35)}
+.lb-ann .sep{width:1px;height:22px;background:rgba(255,255,255,.2);margin:0 2px}
+.ann-btn{padding:6px 12px;border-radius:99px;font-size:13px;font-weight:600;color:#fff;background:rgba(255,255,255,.14)}
+.ann-btn.primary{background:#fff;color:#111}
+@media(max-width:520px){.lb-ann{gap:5px;padding:7px 8px}.ann-btn{padding:6px 9px}}
+.ctl-list .b-act{display:flex;gap:6px}
+.ctl-list .b-act button{padding:5px 12px;border-radius:99px;font-size:13px;font-weight:600;background:var(--fill)}
+.ctl-list .b-act .danger{color:var(--danger)}
+.ctl-list small{display:block;color:var(--mut);font-size:12px;font-weight:400}
+.sheet code{font-size:12px;background:var(--fill);border-radius:6px;padding:1px 6px}
+.ctl-sub code{word-break:break-all}

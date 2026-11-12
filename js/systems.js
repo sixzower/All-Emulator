@@ -67,3 +67,17 @@ window.PADS = {
   a26:  { approx:true, keys:[['Fire',0],['Select',2],['Reset/Start',3]] },
   arc:  { approx:true, keys:[['Coin (หยอดเหรียญ)',2],['Start',3],['ปุ่ม 1',0],['ปุ่ม 2',8],['ปุ่ม 3',1],['ปุ่ม 4',9],['ปุ่ม 5',10],['ปุ่ม 6',11]] }
 };
+
+/* เครื่องที่มีช่องใส่ BIOS (ไฟล์ถูกเก็บในโฟลเดอร์ bios/ ในเครื่องคุณ ไม่ถูกอัปโหลดออกไป) */
+window.BIOS = {
+  psx: { label: 'PlayStation 1', optional: true,  hint: 'เช่น scph5501.bin' },
+  scd: { label: 'Mega CD',       optional: false, hint: 'เช่น bios_CD_U.bin' },
+  sat: { label: 'Sega Saturn',   optional: false, hint: 'เช่น sega_101.bin' }
+};
+
+/* ความละเอียดจอเดิมของแต่ละเครื่อง [กว้าง, สูง] ใช้กับปุ่มปรับขนาดภาพแบบพิกเซลคม */
+window.RES = {
+  nes: [256, 240], snes: [256, 224], gb: [160, 144], gba: [240, 160], nds: [256, 384], n64: [320, 240], psx: [320, 240],
+  psp: [480, 272], md: [320, 224], sms: [256, 192], gg: [160, 144], scd: [320, 224], sat: [320, 224], pce: [256, 224],
+  ngp: [160, 152], ws: [224, 144], a26: [160, 210], arc: [384, 224]
+};

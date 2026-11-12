@@ -126,6 +126,7 @@
       { path: 'RPG/ดินแดนมังกรฟ้า v0.8.cia', name: 'ดินแดนมังกรฟ้า v0.8.cia', size: 734003200 },
       { path: 'RPG/เมืองใต้เงา.cci', name: 'เมืองใต้เงา.cci', size: 2147483648 } ] };
     if (/launch$/.test(path)) return { ok: true };
+    if (/\/api\/bios/.test(path)) return { psx: { name: 'scph5501.bin', size: 524288 } };
     var o = {}; NATIVE.forEach(function (n) { o[n.id] = { exe: 'C:\\Emulators\\' + n.app, games: 'C:\\Games\\' + n.short, exe_ok: n.id === '3ds', games_ok: n.id === '3ds' }; });
     o.psp = { exe_ok: true, games_ok: true }; return o;
   }
@@ -140,12 +141,15 @@
 
   /* ---------- เปิดเกม ---------- */
   function launch(sys, file) {
+    ensureBios(sys, function (biosUrl) { launchNow(sys, file, biosUrl); });
+  }
+  function launchNow(sys, file, biosUrl) {
     current = { file: file, system: sys, key: sys.id + ':' + file.name };
     $('#home').hidden = true;
     $('#play').hidden = false;
     $('#gameTitle').textContent = file.name.replace(/\.[^.]+$/, '');
     $('#gameSys').textContent = sys.name;
-    loadNotes(); renderSlots();
+    loadNotes(); renderSlots(); loadShots(); applyZoom();
     if (sys.heavy) toast('เครื่องนี้ใช้แรงเครื่อง ถ้ากระตุกลองปิดแท็บอื่นก่อน');
 
     if (DEMO) return demoGame();
@@ -155,6 +159,7 @@
       window.EJS_core = sys.core;
       window.EJS_gameName = file.name.replace(/\.[^.]+$/, '');
       window.EJS_gameUrl = file;                 // ส่งเป็นไฟล์ตรงๆ ไม่ผ่านเซิร์ฟเวอร์
+      if (biosUrl) window.EJS_biosUrl = biosUrl;
       window.EJS_pathtodata = base;
       window.EJS_startOnLoaded = true;
       window.EJS_color = '#0a84ff';
@@ -196,19 +201,38 @@
   function canvasShot(cb) { var c = document.querySelector('#ejs canvas'); c ? c.toBlob(cb, 'image/png') : cb(null); }
   function baseName() { return current.file.name.replace(/\.[^.]+$/, ''); }
   function addShot(blob) {
-    shotSeq++;
-    shots.unshift({ blob: blob, url: URL.createObjectURL(blob), name: baseName() + '-' + String(shotSeq).padStart(3, '0') + '.png' });
-    renderShots();
+    var id = ++shotSeq;
+    var sh = { id: id, blob: blob, url: URL.createObjectURL(blob), name: baseName() + '-' + String(id).padStart(3, '0') + '.png', time: Date.now() };
+    shots.unshift(sh); renderShots(); persistShot(sh); return sh;
   }
+  function skey(id) { return current.key + '|' + id; }
+  function persistShot(sh) {
+    if (DEMO) return;
+    idb('readwrite', function (st) { return st.put({ id: sh.id, blob: sh.blob, name: sh.name, time: sh.time }, skey(sh.id)); }, 'shots').catch(function () {});
+  }
+  function unpersistShot(sh) {
+    if (DEMO) return;
+    idb('readwrite', function (st) { return st.delete(skey(sh.id)); }, 'shots').catch(function () {});
+  }
+  function loadShots() {          // ภาพแคปเก็บไว้ในเบราว์เซอร์ ปิด/เปิดใหม่หรือกด "กลับคลัง" แล้วยังอยู่
+    if (DEMO) return;
+    idb('readonly', function (st) { return st.getAll(IDBKeyRange.bound(current.key + '|', current.key + '|￿')); }, 'shots').then(function (list) {
+      list.sort(function (a, b) { return b.id - a.id; });
+      list.forEach(function (r) { shotSeq = Math.max(shotSeq, r.id); shots.push({ id: r.id, blob: r.blob, url: URL.createObjectURL(r.blob), name: r.name, time: r.time }); });
+      renderShots(); renderNotes();
+    }, function () {});
+  }
+  function shotById(id) { return shots.filter(function (x) { return x.id === id; })[0]; }
   function renderShots() {
     var n = shots.length, cnt = $('#shotCount');
     cnt.hidden = !n; cnt.textContent = n;
     $('#btnSaveAll').disabled = !n; $('#btnClearAll').disabled = !n;
     $('#shotHint').hidden = !!n;
     $('#shotGrid').innerHTML = shots.map(function (s, i) {
-      return '<button data-i="' + i + '" aria-label="เปิดภาพที่ ' + (n - i) + '"><img src="' + s.url + '" alt=""><b>' + (n - i) + '</b></button>';
+      return '<button data-i="' + i + '" aria-label="เปิดภาพ #' + s.id + '"><img src="' + s.url + '" alt=""><b>' + s.id + '</b></button>';
     }).join('');
     $('#shotGrid').querySelectorAll('button').forEach(function (b) { b.onclick = function () { openLB(+b.dataset.i); }; });
+    renderAttach();
   }
   function download(blob, name) {
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.hidden = true; document.body.appendChild(a); a.click();
@@ -223,25 +247,27 @@
   };
   $('#btnClearAll').onclick = function () {
     confirmSheet('ลบภาพแคปทั้งหมด?', 'ภาพ ' + shots.length + ' ภาพจะถูกลบและกู้คืนไม่ได้', 'ลบทั้งหมด', function () {
-      shots.forEach(function (s) { URL.revokeObjectURL(s.url); }); shots = []; renderShots();
+      shots.forEach(function (s) { URL.revokeObjectURL(s.url); unpersistShot(s); }); shots = []; setAttach(null); renderShots(); renderNotes();
     });
   };
 
   /* ---------- ดูภาพเต็มจอ ---------- */
   var lbi = -1;
   function openLB(i) { lbi = i; $('#lb').hidden = false; showLB(); $('#lbClose').focus(); }
-  function closeLB() { $('#lb').hidden = true; lbi = -1; }
+  function closeLB() { if (ann) annEnd(); $('#lb').hidden = true; lbi = -1; }
   function showLB() {
     var n = shots.length; if (!n) return closeLB();
     lbi = Math.max(0, Math.min(lbi, n - 1));
-    $('#lbImg').src = shots[lbi].url; $('#lbImg').alt = 'ภาพแคปที่ ' + (n - lbi);
-    $('#lbCount').textContent = (n - lbi) + ' / ' + n;
+    $('#lbImg').src = shots[lbi].url; $('#lbImg').alt = 'ภาพแคป #' + shots[lbi].id;
+    $('#lbCount').textContent = '#' + shots[lbi].id + ' · ' + (n - lbi) + ' / ' + n;
     $('#lbPrev').disabled = lbi >= n - 1; $('#lbNext').disabled = lbi <= 0;   // ใหม่สุดอยู่ซ้ายสุดของกริด
   }
   function stepLB(d) { lbi += d; showLB(); }
   function delLB() {
     confirmSheet('ลบภาพนี้?', 'ภาพจะถูกลบและกู้คืนไม่ได้', 'ลบภาพ', function () {
-      URL.revokeObjectURL(shots[lbi].url); shots.splice(lbi, 1); renderShots(); showLB(); toast('ลบภาพแล้ว');
+      var gone = shots[lbi]; URL.revokeObjectURL(gone.url); unpersistShot(gone); shots.splice(lbi, 1);
+      if (attachId === gone.id) attachId = null;
+      renderShots(); renderNotes(); showLB(); toast('ลบภาพแล้ว');
     });
   }
   $('#lbClose').onclick = closeLB;
@@ -249,7 +275,7 @@
   $('#lbNext').onclick = function () { stepLB(-1); };
   $('#lbDel').onclick = delLB;
   $('#lbSave').onclick = function () { download(shots[lbi].blob, shots[lbi].name); };
-  $('#lb').addEventListener('click', function (e) { if (e.target === this || e.target.classList.contains('lb-top')) closeLB(); });
+  $('#lb').addEventListener('click', function (e) { if (ann) return; if (e.target === this || e.target.classList.contains('lb-top')) closeLB(); });
   var tx = null;
   $('#lb').addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; }, { passive: true });
   $('#lb').addEventListener('touchend', function (e) {
@@ -258,11 +284,67 @@
   });
   document.addEventListener('keydown', function (e) {
     if (lbi < 0 || !$('#sheetWrap').hidden) return;
+    if (ann) {
+      if (e.key === 'Escape') { e.preventDefault(); annEnd(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); annUndo(); }
+      return;
+    }
     if (e.key === 'Escape') closeLB();
     else if (e.key === 'ArrowLeft') stepLB(-1);
     else if (e.key === 'ArrowRight') stepLB(1);
     else if (e.key === 'Delete' || e.key === 'Backspace') delLB();
   });
+
+  /* ---------- วาดบนภาพ (วงกลม/ขีดเส้นชี้จุดที่ผิด) ---------- */
+  var ann = null;
+  function annStart() {
+    var img = $('#lbImg'), c = $('#lbDraw');
+    if (!img.naturalWidth) return;
+    c.width = img.naturalWidth; c.height = img.naturalHeight; c.hidden = false;
+    ann = { strokes: [], color: '#ff3b30', cur: null };
+    $('#lbAnn').hidden = false; $('#lb').classList.add('annotating'); annRedraw();
+  }
+  function annEnd() { ann = null; $('#lbDraw').hidden = true; $('#lbAnn').hidden = true; $('#lb').classList.remove('annotating'); }
+  function annRedraw() {
+    var c = $('#lbDraw'), g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height);
+    drawStrokes(g, c.width, ann.strokes.concat(ann.cur ? [ann.cur] : []));
+  }
+  function drawStrokes(g, w, list) {
+    g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = Math.max(2, w / 90);
+    list.forEach(function (st) {
+      g.strokeStyle = g.fillStyle = st.color;
+      if (st.pts.length === 1) { g.beginPath(); g.arc(st.pts[0].x, st.pts[0].y, g.lineWidth / 2, 0, 7); g.fill(); return; }
+      g.beginPath(); g.moveTo(st.pts[0].x, st.pts[0].y); st.pts.slice(1).forEach(function (p) { g.lineTo(p.x, p.y); }); g.stroke();
+    });
+  }
+  function annUndo() { if (ann) { ann.strokes.pop(); annRedraw(); } }
+  (function () {
+    var c = $('#lbDraw');
+    function pt(e) { var r = c.getBoundingClientRect(); return { x: (e.clientX - r.left) * c.width / r.width, y: (e.clientY - r.top) * c.height / r.height }; }
+    c.addEventListener('pointerdown', function (e) { if (!ann) return; c.setPointerCapture(e.pointerId); ann.cur = { color: ann.color, pts: [pt(e)] }; annRedraw(); });
+    c.addEventListener('pointermove', function (e) { if (ann && ann.cur) { ann.cur.pts.push(pt(e)); annRedraw(); } });
+    ['pointerup', 'pointercancel'].forEach(function (ev) { c.addEventListener(ev, function () { if (ann && ann.cur) { ann.strokes.push(ann.cur); ann.cur = null; annRedraw(); } }); });
+  })();
+  $('#lbEdit').onclick = annStart;
+  $('#annUndo').onclick = annUndo;
+  $('#annCancel').onclick = annEnd;
+  document.querySelectorAll('#lbAnn .swatch').forEach(function (b) {
+    b.onclick = function () { if (!ann) return; ann.color = b.dataset.c; document.querySelectorAll('#lbAnn .swatch').forEach(function (x) { x.classList.toggle('on', x === b); }); };
+  });
+  $('#annDone').onclick = function () {
+    if (!ann) return;
+    var img = $('#lbImg'), out = document.createElement('canvas'); out.width = img.naturalWidth; out.height = img.naturalHeight;
+    var g = out.getContext('2d'); g.drawImage(img, 0, 0); drawStrokes(g, out.width, ann.strokes);
+    var sh = shots[lbi];
+    out.toBlob(function (blob) {
+      if (!blob) return toast('บันทึกภาพที่วาดไม่สำเร็จ');
+      URL.revokeObjectURL(sh.url); sh.blob = blob; sh.url = URL.createObjectURL(blob); persistShot(sh);
+      annEnd(); renderShots(); renderNotes(); showLB(); toast('บันทึกภาพที่วาดแล้ว');
+    }, 'image/png');
+  };
+  $('#lbNote').onclick = function () {
+    var id = shots[lbi].id; closeLB(); showTab('notes'); $('#playBody').classList.remove('nopanel'); setAttach(id); $('#noteText').focus();
+  };
 
   /* ---------- สร้างไฟล์ ZIP (แบบไม่บีบอัด ภาพ PNG บีบมาแล้ว) ---------- */
   var crcT = (function () { var t = []; for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
@@ -288,12 +370,11 @@
   }
 
   /* ---------- แท็บแผงข้าง ---------- */
-  document.querySelectorAll('.seg button').forEach(function (b) {
-    b.onclick = function () {
-      document.querySelectorAll('.seg button').forEach(function (x) { x.classList.toggle('on', x === b); });
-      ['notes', 'shots', 'slots'].forEach(function (t) { $('#tab-' + t).hidden = t !== b.dataset.tab; });
-    };
-  });
+  function showTab(t) {
+    document.querySelectorAll('.seg button').forEach(function (x) { x.classList.toggle('on', x.dataset.tab === t); });
+    ['notes', 'shots', 'slots'].forEach(function (k) { $('#tab-' + k).hidden = k !== t; });
+  }
+  document.querySelectorAll('.seg button').forEach(function (b) { b.onclick = function () { showTab(b.dataset.tab); }; });
 
   /* ---------- โน้ตทดสอบ (เก็บใน localStorage ตามไฟล์เกม) ---------- */
   var notes = [];
@@ -303,9 +384,25 @@
   function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function renderNotes() {
     $('#noteList').innerHTML = notes.length ? notes.map(function (n, i) {
-      return '<li><div class="m"><span class="tag ' + esc(n.tag) + '">' + esc(n.tag) + '</span><span>' + esc(n.time) + ' <button class="x" data-i="' + i + '">ลบ</button></span></div>' + esc(n.text) + '</li>';
+      var sh = n.shot != null && shotById(n.shot);
+      var thumb = sh ? '<button class="nthumb" data-s="' + sh.id + '" aria-label="ดูภาพ #' + sh.id + '"><img src="' + sh.url + '" alt=""></button>' : '';
+      return '<li' + (sh ? ' class="has-shot"' : '') + '><div class="m"><span class="tag ' + esc(n.tag) + '">' + esc(n.tag) + '</span><span>' + esc(n.time) + ' <button class="x" data-i="' + i + '">ลบ</button></span></div><div class="nbody"><span>' + esc(n.text) + '</span>' + thumb + '</div></li>';
     }).join('') : '<li class="hint">ยังไม่มีโน้ต พิมพ์จุดที่เจอปัญหาแล้วกด "เพิ่ม"</li>';
     $('#noteList').querySelectorAll('.x').forEach(function (b) { b.onclick = function () { notes.splice(b.dataset.i, 1); saveNotes(); renderNotes(); }; });
+    $('#noteList').querySelectorAll('.nthumb').forEach(function (b) { b.onclick = function () { openLB(shots.indexOf(shotById(+b.dataset.s))); }; });
+  }
+  var attachId = null;
+  function setAttach(id) { attachId = id; renderAttach(); }
+  function renderAttach() {
+    var r = $('#attachRow'), sh = attachId != null && shotById(attachId);
+    if (sh) {
+      r.innerHTML = '<img src="' + sh.url + '" alt=""><span>แนบภาพ #' + sh.id + ' ไปกับโน้ตนี้</span><button type="button" class="x" id="attachX" aria-label="เอาภาพออก">✕</button>';
+      $('#attachX').onclick = function () { setAttach(null); };
+    } else {
+      attachId = null;
+      r.innerHTML = shots.length ? '<button type="button" class="linkbtn" id="attachLast">＋ แนบภาพล่าสุด (#' + shots[0].id + ')</button>' : '';
+      if (shots.length) $('#attachLast').onclick = function () { setAttach(shots[0].id); };
+    }
   }
   /* ---------- ดรอปดาวน์ประเภทโน้ต (แบบ iOS pop-up menu) ---------- */
   var ddOpts = Array.prototype.slice.call(document.querySelectorAll('#ddMenu [role=option]'));
@@ -343,8 +440,8 @@
     e.preventDefault();
     var t = $('#noteText').value.trim(); if (!t) return;
     var d = new Date();
-    notes.unshift({ tag: $('#noteTag').value, text: t, time: d.toLocaleDateString('th-TH') + ' ' + d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) });
-    $('#noteText').value = ''; saveNotes(); renderNotes();
+    notes.unshift({ tag: $('#noteTag').value, text: t, shot: attachId, time: d.toLocaleDateString('th-TH') + ' ' + d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) });
+    $('#noteText').value = ''; setAttach(null); saveNotes(); renderNotes();
   };
   $('#btnExport').onclick = function () {
     var txt = 'โน้ตทดสอบ: ' + current.file.name + ' (' + current.system.name + ')\n\n' + notes.slice().reverse().map(function (n) { return '[' + n.tag + '] ' + n.text + '  (' + n.time + ')'; }).join('\n');
@@ -352,18 +449,45 @@
     a.download = 'notes-' + current.file.name.replace(/\.[^.]+$/, '') + '.txt'; a.click();
   };
 
+  /* ---------- ส่งออกรายงาน (ไฟล์ HTML ไฟล์เดียว มีโน้ตและภาพ ส่งต่อได้) ---------- */
+  function toDataURL(b) { return new Promise(function (r) { var f = new FileReader(); f.onload = function () { r(f.result); }; f.readAsDataURL(b); }); }
+  $('#btnReport').onclick = function () {
+    toast('กำลังสร้างรายงาน…');
+    Promise.all(shots.map(function (s) { return toDataURL(s.blob).then(function (u) { return { id: s.id, url: u }; }); })).then(function (imgs) {
+      var map = {}; imgs.forEach(function (i) { map[i.id] = i.url; });
+      var list = notes.slice().reverse(), counts = {}, COL = { 'ฟอนต์': '#ff3b30', 'คำผิด': '#ff3b30', 'ข้อความล้น': '#ff9500', 'สระ/วรรณยุกต์': '#ff9500', 'ผ่าน': '#34c759' };
+      list.forEach(function (n) { counts[n.tag] = (counts[n.tag] || 0) + 1; });
+      var chips = Object.keys(counts).map(function (t) { return '<span class="chip" style="--c:' + (COL[t] || '#888') + '">' + esc(t) + ' ' + counts[t] + '</span>'; }).join('');
+      var rows = list.map(function (n, i) {
+        return '<li><div class="top"><b>' + (i + 1) + '.</b><span class="tag" style="--c:' + (COL[n.tag] || '#888') + '">' + esc(n.tag) + '</span><span class="time">' + esc(n.time) + '</span></div><p>' + esc(n.text) + '</p>' +
+          (n.shot != null && map[n.shot] ? '<figure><img src="' + map[n.shot] + '" alt="ภาพ #' + n.shot + '"><figcaption>ภาพ #' + n.shot + '</figcaption></figure>' : '') + '</li>';
+      }).join('') || '<li><p>ยังไม่มีโน้ต</p></li>';
+      var all = shots.slice().reverse().map(function (s) { return '<figure><img src="' + map[s.id] + '" alt=""><figcaption>#' + s.id + '</figcaption></figure>'; }).join('');
+      var d = new Date(), title = baseName();
+      var css = ':root{color-scheme:light dark;--bg:#f2f2f7;--card:#fff;--fg:#111;--mut:#666}@media(prefers-color-scheme:dark){:root{--bg:#000;--card:#1c1c1e;--fg:#f5f5f7;--mut:#999}}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 -apple-system,"Noto Sans Thai","Sukhumvit Set",system-ui,sans-serif;padding:24px 16px}main{max-width:820px;margin:0 auto}h1{font-size:28px;margin:0 0 4px}h2{margin:32px 0 10px;font-size:19px}.meta{color:var(--mut);margin:0 0 14px}.chip,.tag{display:inline-block;font-size:12px;font-weight:600;padding:1px 10px;border-radius:99px;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent);margin:0 6px 6px 0}ol{list-style:none;margin:0;padding:0;display:grid;gap:12px}li{background:var(--card);border-radius:16px;padding:14px 16px}.top{display:flex;gap:8px;align-items:center}.time{margin-left:auto;color:var(--mut);font-size:12px}p{margin:6px 0}figure{margin:8px 0 0}img{max-width:100%;border-radius:10px;image-rendering:pixelated;background:#000}figcaption{font-size:12px;color:var(--mut)}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}.grid figure{margin:0}';
+      var html = '<!doctype html><html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>รายงานทดสอบ ' + esc(title) + '</title><style>' + css + '</style><main><h1>รายงานทดสอบการแปล</h1><p class="meta">' + esc(title) + ' · ' + esc(current.system.name) + ' · ' + d.toLocaleDateString('th-TH') + ' ' + d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + '</p><div>' + chips + '</div><h2>รายการโน้ต (' + list.length + ')</h2><ol>' + rows + '</ol>' + (all ? '<h2>ภาพแคปทั้งหมด (' + shots.length + ')</h2><div class="grid">' + all + '</div>' : '') + '</main>';
+      download(new Blob([html], { type: 'text/html;charset=utf-8' }), 'report-' + title + '.html');
+      toast('ส่งออกรายงานแล้ว');
+    });
+  };
+
   /* ---------- เซฟด่วน 4 ช่อง (IndexedDB) ---------- */
   function openDB() {
     return new Promise(function (res, rej) {
       if (db) return res(db);
-      var r = indexedDB.open('all-emulator', 1);
-      r.onupgradeneeded = function () { r.result.createObjectStore('states'); };
+      var r = indexedDB.open('all-emulator', 2);
+      r.onupgradeneeded = function () {
+        var d = r.result;
+        if (!d.objectStoreNames.contains('states')) d.createObjectStore('states');
+        if (!d.objectStoreNames.contains('shots')) d.createObjectStore('shots');
+      };
       r.onsuccess = function () { db = r.result; res(db); };
       r.onerror = function () { rej(r.error); };
     });
   }
-  function idb(mode, fn) {
-    return openDB().then(function (d) { return new Promise(function (res, rej) { var rq = fn(d.transaction('states', mode).objectStore('states')); rq.onsuccess = function () { res(rq.result); }; rq.onerror = function () { rej(rq.error); }; }); });
+  function idb(mode, fn, store) {
+    store = store || 'states';
+    return openDB().then(function (d) { return new Promise(function (res, rej) { var rq = fn(d.transaction(store, mode).objectStore(store)); rq.onsuccess = function () { res(rq.result); }; rq.onerror = function () { rej(rq.error); }; }); });
   }
   function renderSlots() {
     var h = '';
@@ -445,6 +569,79 @@
   buildHome();
   loadNativeStatus();
 
+  /* ---------- BIOS (เก็บเป็นไฟล์ในโฟลเดอร์ bios/ ผ่าน serve.py) ---------- */
+  function biosPath(id, info) { return 'bios/' + id + '/' + encodeURIComponent(info.name); }
+  function pickBios(id, done) {
+    var inp = document.createElement('input'); inp.type = 'file';
+    inp.onchange = function () {
+      var f = inp.files[0]; if (!f) return;
+      api('/api/bios/' + id + '?name=' + encodeURIComponent(f.name), { method: 'POST', body: f })
+        .then(function (j) { toast('บันทึก BIOS แล้ว'); done(j); }, function (e) { toast('บันทึก BIOS ไม่สำเร็จ: ' + e.message); });
+    };
+    inp.click();
+  }
+  function ensureBios(sys, go) {
+    var b = BIOS[sys.id];
+    if (!b || DEMO) return go(null);
+    api('/api/bios').then(function (info) {
+      if (info[sys.id]) return go(biosPath(sys.id, info[sys.id]));
+      openSheet(b.optional ? 'ใส่ BIOS ไหม? (ไม่บังคับ)' : 'เครื่องนี้ต้องใช้ BIOS',
+        (b.optional ? 'เล่นได้โดยไม่ใช้ BIOS แต่บางเกมจะทำงานได้ดีกว่าถ้ามี' : 'เลือกไฟล์ BIOS ของ ' + b.label + ' ที่คุณมี') + ' (' + b.hint + ') ไฟล์จะถูกเก็บไว้ในโฟลเดอร์ bios/ ในเครื่องคุณ ครั้งหน้าไม่ต้องเลือกซ้ำ',
+        { ok: 'เลือกไฟล์ BIOS', cb: function () { pickBios(sys.id, function (j) { go(biosPath(sys.id, j)); }); },
+          alt: b.optional ? { text: 'เล่นโดยไม่ใช้ BIOS', cb: function () { go(null); } } : null });
+    }, function () { go(null); });   // เปิดไม่ผ่าน serve.py ก็เล่นต่อโดยไม่ใช้ BIOS
+  }
+  function openBiosMgr() {
+    $('#biosWrap').hidden = false; $('#biosClose').focus();
+    var ul = $('#biosList'); ul.innerHTML = '<li><span class="nokey">กำลังตรวจสอบ…</span></li>';
+    api('/api/bios').then(function (info) {
+      ul.innerHTML = Object.keys(BIOS).map(function (id) {
+        var i = info[id], b = BIOS[id];
+        return '<li><span class="lbl">' + esc(b.label) + '<small>' + (i ? esc(i.name) + ' · ' + sizeText(i.size) : (b.optional ? 'ยังไม่มี (ไม่บังคับ)' : 'ยังไม่มี (จำเป็น)')) + '</small></span><span class="b-act"><button data-a="pick" data-id="' + id + '">' + (i ? 'เปลี่ยน' : 'เลือกไฟล์') + '</button>' + (i ? '<button class="danger" data-a="del" data-id="' + id + '">ลบ</button>' : '') + '</span></li>';
+      }).join('');
+      ul.querySelectorAll('button').forEach(function (bt) {
+        bt.onclick = function () {
+          if (bt.dataset.a === 'pick') pickBios(bt.dataset.id, openBiosMgr);
+          else api('/api/bios/' + bt.dataset.id, { method: 'DELETE' }).then(function () { toast('ลบ BIOS แล้ว'); openBiosMgr(); }, function (e) { toast('ลบไม่สำเร็จ: ' + e.message); });
+        };
+      });
+    }, function () { ul.innerHTML = '<li><span class="nokey">ต้องเปิดเว็บผ่าน python serve.py ถึงจะจัดการ BIOS ได้</span></li>'; });
+  }
+  $('#btnBios').onclick = openBiosMgr;
+  $('#biosClose').onclick = function () { $('#biosWrap').hidden = true; };
+  $('#biosWrap').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('#biosWrap').hidden = true; });
+
+  /* ---------- ขนาดภาพ: พอดี / พิกเซลคม / ×2 ×3 ×4 ---------- */
+  var ZOOMS = ['fit', 'int', 2, 3, 4], zoomI = 0;
+  try { var zv = localStorage.getItem('ae-zoom'); if (zv && ZOOMS.indexOf(isNaN(+zv) ? zv : +zv) > -1) zoomI = ZOOMS.indexOf(isNaN(+zv) ? zv : +zv); } catch (e) {}
+  function zoomLabel(m) { return m === 'fit' ? 'พอดี' : m === 'int' ? 'พิกเซลคม' : '×' + m; }
+  function applyZoom(say) {
+    var m = ZOOMS[zoomI], box = $('.screen'), el = $('#ejs'), res = current && RES[current.system.id];
+    $('#zoomLbl').textContent = zoomLabel(m);
+    if (m === 'fit' || !res) { el.style.cssText = ''; box.classList.remove('pix'); window.dispatchEvent(new Event('resize')); if (say) toast('ขนาดภาพ: พอดีกับหน้าจอ'); return; }
+    var max = Math.max(1, Math.floor(Math.min(box.clientWidth / res[0], box.clientHeight / res[1])));
+    var n = m === 'int' ? max : Math.min(m, max);
+    el.style.cssText = 'inset:auto;left:50%;top:50%;transform:translate(-50%,-50%);width:' + res[0] * n + 'px;height:' + res[1] * n + 'px';
+    box.classList.add('pix'); window.dispatchEvent(new Event('resize'));
+    if (say) toast('ขนาดภาพ: ' + zoomLabel(m) + (m !== 'int' && m > max ? ' (จอไม่พอ ใช้ ×' + n + ')' : ' = ' + res[0] * n + '×' + res[1] * n));
+  }
+  $('#btnZoom').onclick = function () {
+    zoomI = (zoomI + 1) % ZOOMS.length;
+    try { localStorage.setItem('ae-zoom', ZOOMS[zoomI]); } catch (e) {}
+    applyZoom(true);
+  };
+  if (window.ResizeObserver) new ResizeObserver(function () { if (current && ZOOMS[zoomI] !== 'fit') applyZoom(); }).observe($('.screen'));
+
+  /* ---------- ปุ่มลัดคีย์บอร์ดของเว็บ ---------- */
+  document.addEventListener('keydown', function (e) {
+    if ($('#play').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!$('#lb').hidden || !$('#sheetWrap').hidden || !$('#ctlWrap').hidden || !$('#biosWrap').hidden) return;
+    var t = e.target; if (t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
+    var act = { F6: function () { slotSave(1); }, F7: function () { slotLoad(1); }, F8: function () { $('#btnShot').click(); }, F9: function () { $('#btnFast').click(); } }[e.key];
+    if (act) { e.preventDefault(); act(); }
+  });
+
   /* ---------- ปุ่มควบคุมของเครื่อง ---------- */
   var KEYS_DEF = { 0: 'X', 1: 'S', 2: 'V', 3: 'Enter', 4: '↑', 5: '↓', 6: '←', 7: '→', 8: 'Z', 9: 'A', 10: 'Q', 11: 'E' };
   var KC = { 8: 'Backspace', 9: 'Tab', 13: 'Enter', 16: 'Shift', 17: 'Ctrl', 18: 'Alt', 27: 'Esc', 32: 'Space', 37: '←', 38: '↑', 39: '→', 40: '↓', 186: ';', 188: ',', 190: '.', 191: '/' };
@@ -469,7 +666,8 @@
     if (pad.approx) notes.unshift('ชื่อปุ่มตรงกับเครื่องจริง แต่คีย์ที่ตรงกันอาจต่างตามเกม ถ้าไม่ตรงให้ดูในเมนูควบคุมของอีมู');
     notes.push('เสียบจอยแล้วใช้ได้ทันที · เปลี่ยนปุ่มได้ที่ไอคอนจอยในแถบควบคุมของอีมู (ใต้จอเกม)');
     $('#ctlTitle').textContent = 'ปุ่มควบคุม · ' + sys.name;
-    $('#ctlBody').innerHTML = '<ul class="ctl-list">' + rows + '</ul><div class="ctl-note">' + notes.map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('') + '</div>';
+    var web = [['เซฟด่วน (ช่อง 1)', 'F6'], ['โหลดเซฟด่วน (ช่อง 1)', 'F7'], ['แคปจอ', 'F8'], ['เร่งความเร็ว เปิด/ปิด', 'F9']].map(function (r) { return '<li><span class="lbl">' + r[0] + '</span><span class="keys"><kbd>' + r[1] + '</kbd></span></li>'; }).join('');
+    $('#ctlBody').innerHTML = '<ul class="ctl-list">' + rows + '</ul><div class="ctl-note">' + notes.map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('') + '</div><p class="ctl-sub">ปุ่มลัดของเว็บ (ใช้ได้ตอนเล่น)</p><ul class="ctl-list">' + web + '</ul>';
     $('#ctlWrap').hidden = false; $('#ctlClose').focus();
   }
   $('#btnCtl').onclick = openControls;
@@ -512,5 +710,6 @@
   });
   function onScroll() { $('#homeBar').classList.toggle('scrolled', window.scrollY > 70); }
   window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
   if (DEMO) launch(SYSTEMS.filter(function (x) { return x.id === 'gba'; })[0], new File(['x'], 'ตำนานดาบสุดท้าย (แปลไทย).gba'));
 })();
