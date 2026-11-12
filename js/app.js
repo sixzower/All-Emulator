@@ -54,6 +54,7 @@
 
   /* ---------- แอนิเมชันเปิด/ปิดเกมแบบ iOS (ไอคอนขยายเต็มจอ / หดกลับเข้าไอคอน) ---------- */
   var lastIcon = null;
+  function setTitle(name) { document.title = name ? 'PlayLab · ' + name : 'PlayLab'; }   // ชื่อบนแท็บเบราว์เซอร์: PlayLab · ชื่อเครื่องที่กำลังใช้
   var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   function iconOf(el) { return el && el.querySelector('.icon'); }
   function makeVeil(ic, full) {
@@ -140,12 +141,13 @@
     return fetch(path, opt).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.status); return j; }); });
   }
   function loadNativeStatus() { return api('api/native').then(function (j) { nativeStatus = j; return j; }, function () { nativeStatus = null; return null; }); }
-  function showHome() { $('#native').hidden = true; $('#home').hidden = false; window.scrollTo(0, 0); closeTransition(lastIcon); }
+  function showHome() { setTitle(); $('#native').hidden = true; $('#home').hidden = false; window.scrollTo(0, 0); closeTransition(lastIcon); }
   $('#nBack').onclick = showHome;
   function sizeText(b) { return b >= 1073741824 ? (b / 1073741824).toFixed(1) + ' GB' : Math.max(1, Math.round(b / 1048576)) + ' MB'; }
 
   function openNative(n) {
     nCur = n;
+    setTitle(n.name);
     var natEl = $('#native'); natEl.hidden = false; natEl.classList.add('entering');
     openTransition(lastIcon, function () { $('#home').hidden = true; natEl.classList.remove('entering'); });
     $('#nTitle').textContent = n.name; $('#nSub').textContent = 'เปิดด้วย ' + n.app;
@@ -214,6 +216,7 @@
   }
   function launchNow(sys, file, biosUrl) {
     current = { file: file, system: sys, key: sys.id + ':' + file.name };
+    setTitle(sys.name);
     var playEl = $('#play'); playEl.hidden = false; playEl.classList.add('entering');   // วางหน้าไว้ใต้ veil ก่อน แล้วค่อยสลับ
     openTransition(lastIcon, function () { $('#home').hidden = true; playEl.classList.remove('entering'); });
     $('#gameTitle').textContent = file.name.replace(/\.[^.]+$/, '');
@@ -254,7 +257,7 @@
 
   /* ---------- ปุ่มบนแถบ ---------- */
   $('#btnBack').onclick = function () {
-    if (DEMO) { $('#play').hidden = true; $('#home').hidden = false; window.scrollTo(0, 0); closeTransition(lastIcon); return; }   // โหมดตัวอย่าง: กลับหน้าคลังโดยไม่รีโหลด
+    if (DEMO) { setTitle(); $('#play').hidden = true; $('#home').hidden = false; window.scrollTo(0, 0); closeTransition(lastIcon); return; }   // โหมดตัวอย่าง: กลับหน้าคลังโดยไม่รีโหลด
     var ic = iconOf(lastIcon);
     try { sessionStorage.setItem('ae-return', current.system.id); } catch (e) {}
     if (!ic || reduceMotion) return location.reload();
