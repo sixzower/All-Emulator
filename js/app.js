@@ -154,8 +154,9 @@
     $('#nSearch').value = ''; $('#nList').innerHTML = ''; $('#nSearchWrap').hidden = true;
     stateCard('<p class="hint">กำลังตรวจสอบ…</p>');
     loadNativeStatus().then(function (st) {
-      if (!st) return stateCard(stateHtml('เปิดผ่าน serve.py เท่านั้น',
-        'ฟีเจอร์นี้ต้องเปิดเว็บจาก <code>python serve.py</code> (แล้วเข้า <code>http://localhost:8000</code>) ไม่ใช่การดับเบิลคลิก index.html'));
+      if (!st) return stateCard(stateHtml('ต้องรันในเครื่องของคุณ',
+        'เกมกลุ่มนี้เปิดด้วยโปรแกรมอีมู (' + esc(n.app) + ') บนคอมของคุณ เว็บออนไลน์สั่งเปิดโปรแกรมในเครื่องไม่ได้ ' +
+        '<a href="https://github.com/sixzower/All-Emulator" target="_blank" rel="noopener">ดาวน์โหลดโปรเจกต์</a>แล้วรัน <code>python serve.py</code> จากนั้นเข้า <code>http://localhost:8000</code> (ไม่ใช่ดับเบิลคลิก index.html)'));
       var e = st[n.id];
       if (!e) return stateCard(stateHtml('ยังไม่ได้ตั้งค่า ' + n.name, 'เปิดไฟล์ <code>emulators.json</code> แล้วเพิ่มส่วน <code>"' + n.id + '"</code> ตามตัวอย่างเครื่องอื่น'));
       if (!e.exe_ok || !e.games_ok) {
@@ -640,9 +641,11 @@
 
   buildHome();
   loadNativeStatus().then(function (st) {
+    // หน้าตาเหมือนกันทั้งรันในเครื่องและบนเว็บออนไลน์ ต่างกันแค่เมื่อไม่มี serve.py (Vercel / GitHub Pages)
+    // ไอคอนเครื่องหนักจะบอกว่า "ต้องรันในเครื่อง" และมีข้อความอธิบายเมื่อกด
     if (st || DEMO) return;
-    var g = document.querySelector('.native-group'); if (g) g.hidden = true;   // ไม่มี serve.py (เช่นเปิดจาก GitHub Pages): ซ่อนฟีเจอร์ที่ต้องใช้เซิร์ฟเวอร์ในเครื่อง
-    $('#btnBios').hidden = true; $('#footLocal').hidden = true; $('#footWeb').hidden = false;
+    document.querySelectorAll('.native-group .app .sub').forEach(function (x) { x.textContent = 'ต้องรันในเครื่อง'; });
+    $('#footWeb').hidden = false;
   });
 
   /* ---------- BIOS (เก็บเป็นไฟล์ในโฟลเดอร์ bios/ ผ่าน serve.py) ---------- */
@@ -681,7 +684,7 @@
           else api('api/bios/' + bt.dataset.id, { method: 'DELETE' }).then(function () { toast('ลบ BIOS แล้ว'); openBiosMgr(); }, function (e) { toast('ลบไม่สำเร็จ: ' + e.message); });
         };
       });
-    }, function () { ul.innerHTML = '<li><span class="nokey">ต้องเปิดเว็บผ่าน python serve.py ถึงจะจัดการ BIOS ได้</span></li>'; });
+    }, function () { ul.innerHTML = '<li><span class="nokey">จัดการ BIOS ได้เฉพาะตอนรันในเครื่องด้วย python serve.py (เวอร์ชันออนไลน์ทำไม่ได้)</span></li>'; });
   }
   $('#btnBios').onclick = openBiosMgr;
   $('#biosClose').onclick = function () { $('#biosWrap').hidden = true; };
