@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>All-Emulator · ห้องทดสอบเกมแปลไทย</title>
-<script>try{var m=localStorage.getItem("ae-theme");if(m==="light"||m==="dark")document.documentElement.setAttribute("data-theme",m)}catch(e){}</script>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
+<script>try{var m=localStorage.getItem("ae-theme");if(m==="light"||m==="dark")document.documentElement.setAttribute("data-theme",m);var a=localStorage.getItem("ae-accent");if(a)document.documentElement.setAttribute("data-accent",a);if(sessionStorage.getItem("ae-return"))document.documentElement.classList.add("returning");setTimeout(function(){document.documentElement.classList.remove("returning")},1500)}catch(e){}</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -47,7 +47,7 @@
 
   <div id="groups"></div>
   <p class="empty" id="empty" hidden>ไม่พบเครื่องที่ค้นหา</p>
-  <button class="linkbtn" id="btnBios">จัดการ BIOS (PS1 / Saturn / Mega CD)</button>
+  <div class="foot-links"><button class="linkbtn" id="btnAccent">สีเน้น</button><button class="linkbtn" id="btnBios">จัดการ BIOS</button></div>
   <p class="foot">ลากไฟล์เกมมาวางบนไอคอนก็เริ่มเล่นได้เลย<br>เครื่องหนัก (3DS, PS2, Wii ฯลฯ) เปิดด้วยโปรแกรมอีมูในเครื่องคุณ</p>
 </main>
 
@@ -75,7 +75,7 @@
   </header>
 
   <div class="play-body" id="playBody">
-    <div class="screen"><div id="ejs"></div><div class="loading" id="loading">กำลังเตรียมอีมูเลเตอร์…</div></div>
+    <div class="screen"><div id="ejs"></div><div class="loading" id="loading"><div class="spin" aria-hidden="true"><i style="--n:0"></i><i style="--n:1"></i><i style="--n:2"></i><i style="--n:3"></i><i style="--n:4"></i><i style="--n:5"></i><i style="--n:6"></i><i style="--n:7"></i><i style="--n:8"></i><i style="--n:9"></i><i style="--n:10"></i><i style="--n:11"></i></div><b id="loadName"></b><span id="loadMsg">กำลังเตรียมอีมูเลเตอร์…</span></div></div>
 
     <aside class="panel glass" id="panel">
       <div class="seg" role="tablist">
@@ -169,6 +169,16 @@
   <button type="button" role="option" data-v="คำผิด" data-c="bad">คำผิด</button>
   <button type="button" role="option" data-v="สระ/วรรณยุกต์" data-c="warn">สระ/วรรณยุกต์</button>
   <button type="button" role="option" data-v="ผ่าน" data-c="ok">ผ่าน</button>
+</div>
+
+<!-- ===== เลือกสีเน้น ===== -->
+<div id="accWrap" class="sheet-wrap" hidden>
+  <div class="sheet glass ctl" role="dialog" aria-modal="true" aria-labelledby="accTitle">
+    <h2 id="accTitle">สีเน้น</h2>
+    <p class="ctl-sub">สีของปุ่มหลัก ไอคอนบนแถบ และตัวเลือกต่างๆ</p>
+    <div class="swatches" id="accList" role="radiogroup" aria-label="สีเน้น"></div>
+    <button class="sheet-btn" id="accClose">เสร็จ</button>
+  </div>
 </div>
 
 <!-- ===== จัดการ BIOS ===== -->

@@ -10,17 +10,82 @@
   var DEMO = /[?&]demo/.test(location.search);   // โหมดตัวอย่าง: จอเกมจำลอง ไม่ต้องใช้อีมูหรือรอม
 
   /* ---------- ไอคอนเครื่อง (รูปทรงต้นฉบับ ไม่ใช้โลโก้จริง) ---------- */
+  var W = 'fill="#fff" fill-opacity=".94"', W2 = 'fill="#fff" fill-opacity=".62"', D = 'fill="#000" fill-opacity=".34"', L = 'fill="#fff" fill-opacity=".38"';
+  var STK = 'fill="none" stroke="#000" stroke-opacity=".4" stroke-width="2.6" stroke-linecap="round"';
+  function V(inner) { return '<svg viewBox="0 0 64 64"><g transform="translate(32 28.5) scale(.9) translate(-32 -32)">' + inner + '</g></svg>'; }
+  function dp(x, y, s) { return '<path d="M' + (x - s) + ' ' + y + 'h' + 2 * s + 'M' + x + ' ' + (y - s) + 'v' + 2 * s + '" ' + STK + '/>'; }
+  function dt(x, y, r, f) { return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" ' + (f || D) + '/>'; }
+  function pill(x, y, w, rot) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="2.6" rx="1.3" ' + D + ' transform="rotate(' + (rot || 0) + ' ' + (x + w / 2) + ' ' + (y + 1.3) + ')"/>'; }
+  function scr(x, y, w, h) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="2" ' + D + '/><rect x="' + (x + 2.4) + '" y="' + (y + 2.4) + '" width="' + (w - 4.8) + '" height="' + (h - 4.8) + '" rx="1" ' + L + '/>'; }
   var GLYPH = {
-    tall: '<svg viewBox="0 0 64 64"><rect x="16" y="6" width="32" height="52" rx="6" fill="#fff" fill-opacity=".92"/><rect x="21" y="11" width="22" height="20" rx="2" fill="#000" fill-opacity=".35"/><path d="M24 42h8M28 38v8" stroke="#000" stroke-opacity=".4" stroke-width="3" stroke-linecap="round"/><circle cx="40" cy="40" r="2.6" fill="#000" fill-opacity=".4"/><circle cx="44" cy="46" r="2.6" fill="#000" fill-opacity=".4"/></svg>',
-    wide: '<svg viewBox="0 0 64 64"><rect x="4" y="16" width="56" height="32" rx="9" fill="#fff" fill-opacity=".92"/><rect x="18" y="21" width="28" height="22" rx="2" fill="#000" fill-opacity=".35"/><path d="M11 32h8M15 28v8" stroke="#000" stroke-opacity=".4" stroke-width="2.6" stroke-linecap="round"/><circle cx="52" cy="29" r="2.4" fill="#000" fill-opacity=".4"/><circle cx="52" cy="36" r="2.4" fill="#000" fill-opacity=".4"/></svg>',
-    dual: '<svg viewBox="0 0 64 64"><rect x="12" y="4" width="40" height="56" rx="7" fill="#fff" fill-opacity=".92"/><rect x="17" y="9" width="30" height="20" rx="2" fill="#000" fill-opacity=".35"/><rect x="17" y="35" width="30" height="20" rx="2" fill="#000" fill-opacity=".35"/><rect x="12" y="30" width="40" height="3" fill="#000" fill-opacity=".18"/></svg>',
-    pad:  '<svg viewBox="0 0 64 64"><path d="M14 20h36c6 0 10 6 11 14l1 10c.6 5-4 8-8 5l-8-7H18l-8 7c-4 3-8.600 0-8-5l1-10c1-8 5-14 11-14z" fill="#fff" fill-opacity=".92"/><path d="M19 29v10M14 34h10" stroke="#000" stroke-opacity=".4" stroke-width="3" stroke-linecap="round"/><circle cx="42" cy="31" r="2.8" fill="#000" fill-opacity=".4"/><circle cx="48" cy="37" r="2.8" fill="#000" fill-opacity=".4"/></svg>',
-    cart: '<svg viewBox="0 0 64 64"><path d="M14 8h36a4 4 0 0 1 4 4v38a4 4 0 0 1-4 4H14a4 4 0 0 1-4-4V12a4 4 0 0 1 4-4z" fill="#fff" fill-opacity=".92"/><rect x="17" y="14" width="30" height="20" rx="3" fill="#000" fill-opacity=".3"/><rect x="20" y="42" width="24" height="8" rx="2" fill="#000" fill-opacity=".25"/></svg>',
-    disc: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="25" fill="#fff" fill-opacity=".92"/><circle cx="32" cy="32" r="8" fill="#000" fill-opacity=".35"/><circle cx="32" cy="32" r="18" fill="none" stroke="#000" stroke-opacity=".15" stroke-width="2"/></svg>'
+    gb:  V('<path d="M15 5h34a3 3 0 0 1 3 3v38a10 10 0 0 1-10 10H15a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3z" ' + W + '/>' + scr(17, 10, 30, 24) + dp(24, 43, 5) + dt(39, 45, 3.2) + dt(46, 40, 3.2) + pill(27, 51, 7, -22) + pill(36, 51, 7, -22)),
+    gba: V('<rect x="8" y="12" width="14" height="7" rx="3" ' + W2 + '/><rect x="42" y="12" width="14" height="7" rx="3" ' + W2 + '/><rect x="3" y="17" width="58" height="29" rx="11" ' + W + '/>' + scr(19, 21, 26, 21) + dp(11, 31, 4.5) + dt(55, 28, 2.8) + dt(50, 34, 2.8) + pill(8, 40, 6, -22) + pill(50, 40, 6, -22)),
+    nds: V('<rect x="13" y="3" width="38" height="26" rx="6" ' + W + '/><rect x="12" y="28.500" width="40" height="5.500" rx="2.500" ' + W2 + '/><rect x="13" y="33" width="38" height="28" rx="6" ' + W + '/>' + scr(19, 7, 26, 18) + scr(23, 37, 22, 18) + dp(17.500, 46, 3.200) + dt(49, 41.500, 1.700) + dt(49, 50.500, 1.700) + dt(44.500, 46, 1.700) + dt(53.500, 46, 1.700)),
+    psp: V('<rect x="1.500" y="19" width="61" height="26" rx="11" ' + W + '/>' + scr(14, 22, 36, 20) + dp(7.500, 28, 3.500) + dt(7.500, 37, 2.200) + dt(56.500, 27, 1.700) + dt(56.500, 35, 1.700) + dt(52.500, 31, 1.700) + dt(60.500, 31, 1.700)),
+    gg:  V('<rect x="3" y="16" width="58" height="31" rx="8" ' + W + '/>' + scr(15, 19, 34, 25) + dp(9, 32, 4) + dt(52, 34, 2.600) + dt(57.500, 34, 2.600) + pill(51, 24, 7, 0)),
+    ngp: V('<rect x="8" y="14" width="48" height="34" rx="10" ' + W + '/>' + scr(18, 18, 28, 20) + '<circle cx="17" cy="43" r="3.800" ' + D + '/><circle cx="17" cy="43" r="1.700" ' + W + '/>' + dt(47, 43, 2.300) + dt(53, 43, 2.300)),
+    ws:  V('<path d="M20 5h24a6 6 0 0 1 6 6v38a6 6 0 0 1-6 6H20a6 6 0 0 1-6-6V11a6 6 0 0 1 6-6z" ' + W + '/>' + scr(20, 10, 24, 20) + dp(26, 41, 4) + dp(38, 41, 4) + pill(26, 50, 12, 0)),
+    nes: V('<rect x="4" y="17" width="56" height="30" rx="5" ' + W + '/><rect x="8" y="21" width="48" height="22" rx="3" fill="#000" fill-opacity=".18"/>' + dp(17, 32, 5.500) + pill(27, 36, 7, 0) + pill(36, 36, 7, 0) + dt(46, 34, 3.400, 'fill="#e5484d"') + dt(53, 34, 3.400, 'fill="#e5484d"')),
+    snes: V('<path d="M6 30c0-8 5-12 11-12h30c6 0 11 4 11 12 0 8-4 16-9 16-5 0-6-4-11-4H26c-5 0-6 4-11 4-5 0-9-8-9-16z" ' + W + '/>' + dp(17, 30, 5) + pill(27, 31, 6, -25) + pill(34, 31, 6, -25) + dt(46, 24.500, 2.500, 'fill="#3b82f6"') + dt(40.500, 30, 2.500, 'fill="#22c55e"') + dt(51.500, 30, 2.500, 'fill="#ef4444"') + dt(46, 35.500, 2.500, 'fill="#facc15"')),
+    n64: V('<rect x="13" y="15" width="38" height="13" rx="6.500" ' + W + '/><path d="M24 24 18 21c-6-3-12 1-13 9L3 47c-1 5 3 9 7 7 3-1.500 4-5 5-9l9-12z" ' + W + '/><path d="M40 24l6-3c6-3 12 1 13 9l2 17c1 5-3 9-7 7-3-1.500-4-5-5-9l-9-12z" ' + W + '/><rect x="26" y="22" width="12" height="35" rx="6" ' + W + '/>' + dt(32, 32, 4.200) + dp(14, 28, 3.500) + dt(49, 31, 2.300, 'fill="#3b82f6"') + dt(54, 27, 2, 'fill="#22c55e"') + dt(54, 35, 2, 'fill="#facc15"')),
+    psx: V('<path d="M14 18h36c5 0 8 4 9 10l2 14c.8 5-4 8-8 5l-6-5H17l-6 5c-4 3-8.800 0-8-5l2-14c1-6 4-10 9-10z" ' + W + '/>' + dp(19, 29, 4.500) + '<path d="M46 22.500l2.600 4.400h-5.200z" fill="#16a34a"/><circle cx="52" cy="29.500" r="2.300" fill="none" stroke="#dc2626" stroke-width="1.500"/><path d="M44 33.500l4.600 4.600M48.600 33.500l-4.600 4.600" stroke="#2563eb" stroke-width="1.600" stroke-linecap="round"/><rect x="39.200" y="27.200" width="4.600" height="4.600" fill="none" stroke="#db2777" stroke-width="1.500"/>' + dt(27, 38, 3.300) + dt(37, 38, 3.300)),
+    md:  V('<path d="M6 31c0-8 4-12 11-12h30c7 0 11 4 11 12 0 7-3 14-9 14-6 0-8-5-14-5h-6c-6 0-8 5-14 5-6 0-9-7-9-14z" ' + W + '/>' + dp(17, 31, 5) + pill(27, 25, 10, 0) + dt(39, 35, 3) + dt(46, 32, 3) + dt(53, 29, 3)),
+    sms: V('<rect x="13" y="8" width="24" height="17" rx="2.500" ' + W2 + '/><rect x="6" y="22" width="52" height="26" rx="5" ' + W + '/><rect x="12" y="27" width="28" height="4.500" rx="2.200" ' + D + '/>' + dt(47, 29, 2.800) + dt(53, 29, 2.800) + '<path d="M12 38h40M12 42h40" fill="none" stroke="#000" stroke-opacity=".18" stroke-width="1.600"/>'),
+    scd: V('<circle cx="32" cy="28" r="17" ' + W + '/><circle cx="32" cy="28" r="5" ' + D + '/><circle cx="32" cy="28" r="12" fill="none" stroke="#000" stroke-opacity=".14" stroke-width="1.600"/><rect x="5" y="36" width="54" height="20" rx="5" ' + W + '/>' + dt(14, 46, 2) + pill(44, 44.700, 11, 0)),
+    sat: V('<rect x="4" y="26" width="56" height="26" rx="8" ' + W + '/><circle cx="29" cy="34" r="13" ' + D + '/><circle cx="29" cy="34" r="9" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="2"/><circle cx="29" cy="34" r="3" ' + L + '/>' + dt(51, 33, 2.200) + dt(51, 40, 2.200) + '<path d="M16 49h30" fill="none" stroke="#000" stroke-opacity=".2" stroke-width="1.800" stroke-linecap="round"/>'),
+    pce: V('<path d="M17 6h30a3 3 0 0 1 3 3v46a3 3 0 0 1-3 3H17a3 3 0 0 1-3-3V13z" ' + W + '/><rect x="19" y="14" width="26" height="22" rx="2.500" ' + D + '/><path d="M20 49h24" fill="none" stroke="#000" stroke-opacity=".4" stroke-width="3" stroke-dasharray="2 2.600"/>'),
+    a26: V('<path d="M9 42h46a4 4 0 0 1 4 4v7H5v-7a4 4 0 0 1 4-4z" ' + W + '/><rect x="29" y="20" width="6" height="23" rx="3" ' + W + '/><circle cx="32" cy="17" r="9" ' + W + '/><circle cx="32" cy="17" r="4" ' + D + '/>' + dt(46, 48, 2.800, 'fill="#e5484d"') + dt(18, 48, 2.800)),
+    arc: V('<rect x="15" y="4" width="34" height="54" rx="4" ' + W + '/><rect x="19" y="8" width="26" height="6" rx="2" ' + D + '/>' + scr(19, 16, 26, 17) + '<path d="M13 38h38l4 12H9z" ' + W2 + '/>' + dt(23, 43, 3.200) + dt(34, 44, 2.200) + dt(41, 44, 2.200) + dt(48, 44, 2.200)),
+    '3ds': V('<rect x="5" y="4" width="54" height="27" rx="6" ' + W + '/><rect x="5" y="31" width="54" height="3.500" ' + W2 + '/><rect x="5" y="33" width="54" height="27" rx="6" ' + W + '/>' + scr(11, 8, 42, 19) + scr(21, 37, 22, 19) + dp(13, 46, 3.500) + dt(51, 41.500, 1.700) + dt(51, 50.500, 1.700) + dt(46.500, 46, 1.700) + dt(55.500, 46, 1.700)),
+    ps2: V('<rect x="20" y="3" width="24" height="56" rx="5" ' + W + '/><rect x="24" y="10" width="16" height="3.500" rx="1.700" ' + D + '/><path d="M25 21h14M25 25h14M25 29h14M25 33h14M25 37h14" fill="none" stroke="#000" stroke-opacity=".26" stroke-width="1.800" stroke-linecap="round"/>' + dt(32, 50, 3)),
+    gc:  V('<path d="M24 19v-5a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v5" fill="none" stroke="#fff" stroke-opacity=".94" stroke-width="4.500" stroke-linecap="round"/><rect x="9" y="19" width="46" height="37" rx="8" ' + W + '/><circle cx="32" cy="38" r="12" ' + D + '/><circle cx="32" cy="38" r="4.500" ' + L + '/>' + dt(14, 50, 1.800)),
+    ns:  V('<rect x="1" y="14" width="15" height="36" rx="7" ' + W2 + '/><rect x="48" y="14" width="15" height="36" rx="7" ' + W2 + '/><rect x="14" y="13" width="36" height="38" rx="3" ' + W + '/>' + scr(17, 17, 30, 30) + dt(8.500, 26, 3.600) + dt(55.500, 38, 3.600) + dp(56, 24, 2.600) + dt(7.500, 40, 1.600)),
+    dc:  V('<rect x="7" y="8" width="50" height="48" rx="10" ' + W + '/><circle cx="32" cy="32" r="16" ' + D + '/><path d="M32 21a11 11 0 1 0 11 11" fill="none" stroke="#fff" stroke-opacity=".95" stroke-width="3.600" stroke-linecap="round"/><circle cx="46" cy="14" r="1.800" ' + D + '/>'),
+    /* รูปทรงทั่วไป ใช้เมื่อเพิ่มเครื่องใหม่ที่ยังไม่มีไอคอนเฉพาะ */
+    tall: V('<rect x="16" y="6" width="32" height="52" rx="6" ' + W + '/>' + scr(21, 11, 22, 20) + dp(28, 42, 4)),
+    wide: V('<rect x="4" y="16" width="56" height="32" rx="9" ' + W + '/>' + scr(18, 21, 28, 22) + dp(11, 32, 4)),
+    pad:  V('<path d="M14 20h36c6 0 10 6 11 14l1 10c.6 5-4 8-8 5l-8-7H18l-8 7c-4 3-8.600 0-8-5l1-10c1-8 5-14 11-14z" ' + W + '/>' + dp(19, 34, 5) + dt(42, 31, 2.800) + dt(48, 37, 2.800)),
+    disc: V('<circle cx="32" cy="32" r="25" ' + W + '/><circle cx="32" cy="32" r="8" ' + D + '/>')
   };
   function icon(s, off) {
     var c = s.c || ['#9aa', '#566'];
-    return '<span class="icon" style="background:linear-gradient(160deg,' + c[0] + ',' + c[1] + ')">' + GLYPH[s.glyph] + '<em>' + s.short + '</em></span>';
+    return '<span class="icon" style="background:linear-gradient(160deg,' + c[0] + ',' + c[1] + ')">' + (GLYPH[s.id] || GLYPH[s.glyph]) + '<em>' + s.short + '</em></span>';
+  }
+
+  /* ---------- แอนิเมชันเปิด/ปิดเกมแบบ iOS (ไอคอนขยายเต็มจอ / หดกลับเข้าไอคอน) ---------- */
+  var lastIcon = null;
+  var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function iconOf(el) { return el && el.querySelector('.icon'); }
+  function makeVeil(ic, full) {
+    var r = ic.getBoundingClientRect(), v = document.createElement('div'); v.className = 'veil';
+    v.style.cssText = full ? 'left:0;top:0;width:100vw;height:100vh;border-radius:0;' : 'left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;border-radius:22.37%;';
+    v.style.background = getComputedStyle(ic).backgroundImage;
+    document.body.appendChild(v); return v;
+  }
+  function openTransition(el, swap) {
+    var ic = iconOf(el);
+    if (!ic || reduceMotion) return swap();
+    var v = makeVeil(ic, false); v.getBoundingClientRect();
+    v.style.transition = 'left .38s cubic-bezier(.2,.8,.2,1),top .38s cubic-bezier(.2,.8,.2,1),width .38s cubic-bezier(.2,.8,.2,1),height .38s cubic-bezier(.2,.8,.2,1),border-radius .38s';
+    v.style.left = v.style.top = '0px'; v.style.width = '100vw'; v.style.height = '100vh'; v.style.borderRadius = '0';
+    setTimeout(function () {
+      swap(); window.scrollTo(0, 0);
+      v.style.transition = 'opacity .24s ease-out'; v.style.opacity = '0';
+      setTimeout(function () { v.remove(); }, 280);
+    }, 390);
+  }
+  function closeTransition(el) {
+    document.documentElement.classList.remove('returning');
+    var ic = iconOf(el);
+    if (!ic || reduceMotion) return;
+    var v = makeVeil(ic, true);
+    el.scrollIntoView({ block: 'nearest' });
+    requestAnimationFrame(function () {
+      var r = ic.getBoundingClientRect(), E = 'cubic-bezier(.2,.8,.2,1)';
+      v.style.transition = 'left .4s ' + E + ',top .4s ' + E + ',width .4s ' + E + ',height .4s ' + E + ',border-radius .4s,opacity .22s ease-in .2s';
+      v.style.left = r.left + 'px'; v.style.top = r.top + 'px'; v.style.width = r.width + 'px'; v.style.height = r.height + 'px'; v.style.borderRadius = '22.37%'; v.style.opacity = '0';
+      setTimeout(function () { v.remove(); }, 520);
+    });
   }
 
   /* ---------- หน้าคลัง ---------- */
@@ -44,6 +109,7 @@
     document.querySelectorAll('.app[data-id]').forEach(function (b) {
       var sys = SYSTEMS.filter(function (s) { return s.id === b.dataset.id; })[0];
       b.addEventListener('click', function () {
+        lastIcon = b;
         var st = nativeStatus && sys.native && nativeStatus[sys.native];
         if (st && st.exe_ok && st.games_ok) {
           var alt = NATIVE_ALT[sys.native];
@@ -55,13 +121,13 @@
       b.addEventListener('dragover', function (e) { e.preventDefault(); b.classList.add('drop'); });
       b.addEventListener('dragleave', function () { b.classList.remove('drop'); });
       b.addEventListener('drop', function (e) {
-        e.preventDefault(); b.classList.remove('drop');
+        e.preventDefault(); b.classList.remove('drop'); lastIcon = b;
         if (e.dataTransfer.files[0]) launch(sys, e.dataTransfer.files[0]);
       });
     });
     document.querySelectorAll('.app[data-native]').forEach(function (b) {
       var n = NATIVE.filter(function (x) { return x.id === b.dataset.native; })[0];
-      b.addEventListener('click', function () { openNative(n); });
+      b.addEventListener('click', function () { lastIcon = b; openNative(n); });
     });
   }
 
@@ -73,13 +139,14 @@
     return fetch(path, opt).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.status); return j; }); });
   }
   function loadNativeStatus() { return api('/api/native').then(function (j) { nativeStatus = j; return j; }, function () { nativeStatus = null; return null; }); }
-  function showHome() { $('#native').hidden = true; $('#home').hidden = false; window.scrollTo(0, 0); }
+  function showHome() { $('#native').hidden = true; $('#home').hidden = false; window.scrollTo(0, 0); closeTransition(lastIcon); }
   $('#nBack').onclick = showHome;
   function sizeText(b) { return b >= 1073741824 ? (b / 1073741824).toFixed(1) + ' GB' : Math.max(1, Math.round(b / 1048576)) + ' MB'; }
 
   function openNative(n) {
     nCur = n;
-    $('#home').hidden = true; $('#native').hidden = false; window.scrollTo(0, 0);
+    var natEl = $('#native'); natEl.hidden = false; natEl.classList.add('entering');
+    openTransition(lastIcon, function () { $('#home').hidden = true; natEl.classList.remove('entering'); });
     $('#nTitle').textContent = n.name; $('#nSub').textContent = 'เปิดด้วย ' + n.app;
     $('#nSearch').value = ''; $('#nList').innerHTML = ''; $('#nSearchWrap').hidden = true;
     stateCard('<p class="hint">กำลังตรวจสอบ…</p>');
@@ -146,12 +213,14 @@
   }
   function launchNow(sys, file, biosUrl) {
     current = { file: file, system: sys, key: sys.id + ':' + file.name };
-    $('#home').hidden = true;
-    $('#play').hidden = false;
+    var playEl = $('#play'); playEl.hidden = false; playEl.classList.add('entering');   // วางหน้าไว้ใต้ veil ก่อน แล้วค่อยสลับ
+    openTransition(lastIcon, function () { $('#home').hidden = true; playEl.classList.remove('entering'); });
     $('#gameTitle').textContent = file.name.replace(/\.[^.]+$/, '');
     $('#gameSys').textContent = sys.name;
     loadNotes(); renderSlots(); loadShots();
-    if (sys.heavy) toast('เครื่องนี้ใช้แรงเครื่อง ถ้ากระตุกลองปิดแท็บอื่นก่อน');
+    var ld = $('#loading'); ld.hidden = false; ld.classList.remove('failed');
+    $('#loadName').textContent = $('#gameTitle').textContent; $('#loadMsg').textContent = 'กำลังเตรียมอีมูเลเตอร์…';
+    if (sys.heavy) toast('เครื่องนี้ใช้แรงเครื่อง ถ้ากระตุกลองปิดแท็บอื่นก่อน', 'info');
 
     if (DEMO) {   // ล้างสถานะของเกมก่อนหน้า เพราะไม่ได้รีโหลดหน้า
       shots.forEach(function (x) { URL.revokeObjectURL(x.url); }); shots = []; shotSeq = 0; attachId = null;
@@ -172,7 +241,7 @@
       window.EJS_onGameStart = function () { $('#loading').hidden = true; };
       var s = document.createElement('script');
       s.src = base + 'loader.js';
-      s.onerror = function () { $('#loading').textContent = 'โหลดอีมูเลเตอร์ไม่ได้ ตรวจสอบอินเทอร์เน็ต หรือดูวิธีใช้ออฟไลน์ใน README'; };
+      s.onerror = function () { $('#loading').classList.add('failed'); $('#loadMsg').textContent = 'โหลดอีมูเลเตอร์ไม่ได้ ตรวจสอบอินเทอร์เน็ต หรือดูวิธีใช้ออฟไลน์ใน README'; };
       document.body.appendChild(s);
     });
   }
@@ -183,8 +252,12 @@
 
   /* ---------- ปุ่มบนแถบ ---------- */
   $('#btnBack').onclick = function () {
-    if (DEMO) { $('#play').hidden = true; $('#home').hidden = false; window.scrollTo(0, 0); return; }   // โหมดตัวอย่าง: กลับหน้าคลังโดยไม่รีโหลด
-    location.reload();
+    if (DEMO) { $('#play').hidden = true; $('#home').hidden = false; window.scrollTo(0, 0); closeTransition(lastIcon); return; }   // โหมดตัวอย่าง: กลับหน้าคลังโดยไม่รีโหลด
+    var ic = iconOf(lastIcon);
+    try { sessionStorage.setItem('ae-return', current.system.id); } catch (e) {}
+    if (!ic || reduceMotion) return location.reload();
+    var v = makeVeil(ic, true); v.style.opacity = '0'; v.getBoundingClientRect(); v.style.transition = 'opacity .16s'; v.style.opacity = '1';   // ปิดหน้าด้วยสีไอคอนแล้วรีโหลด จากนั้นหดกลับเข้าไอคอน
+    setTimeout(function () { location.reload(); }, 180);
   };   // รีโหลดเพื่อคืนหน่วยความจำให้หมด
   $('#btnPanel').onclick = function () { $('#playBody').classList.toggle('nopanel'); };
   $('#btnFull').onclick = function () {
@@ -521,7 +594,15 @@
   $('#sheetWrap').addEventListener('click', function (e) { if (e.target === this) closeSheet(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('#sheetWrap').hidden) closeSheet(); });
   var tt;
-  function toast(msg) { var t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(tt); tt = setTimeout(function () { t.hidden = true; }, 3200); }
+  var TOAST_ICON = { ok: '<path d="M5 12.5l4.5 4.5L19 7"/>', warn: '<path d="M12 6.5v7M12 17.5v.01"/>', info: '<path d="M12 11v6M12 7v.01"/>' };
+  function toast(msg, type) {
+    type = type || (/ไม่สำเร็จ|ไม่ได้|ผิดพลาด|ไม่รองรับ|ไม่พบ/.test(msg) ? 'warn' : /แล้ว|สำเร็จ/.test(msg) ? 'ok' : 'info');
+    var t = $('#toast'); t.hidden = true; void t.offsetWidth;          // เริ่มแอนิเมชันใหม่ทุกครั้ง
+    t.className = 'toast glass ' + type;
+    t.innerHTML = '<i class="ti"><svg viewBox="0 0 24 24">' + TOAST_ICON[type] + '</svg></i><span></span>';
+    t.lastChild.textContent = msg; t.hidden = false;
+    clearTimeout(tt); tt = setTimeout(function () { t.hidden = true; }, 3200);
+  }
 
 
   /* ---------- โหมดตัวอย่าง (?demo) ---------- */
@@ -655,6 +736,26 @@
   if (darkMQ.addEventListener) darkMQ.addEventListener('change', function () { if (theme === 'auto') applyTheme('auto'); });
   applyTheme(theme);
 
+  /* ---------- สีเน้น ---------- */
+  var ACCENTS = [['graphite', 'กราไฟต์', null], ['orange', 'ส้ม', '#ff9500'], ['green', 'เขียว', '#34c759'], ['purple', 'ม่วง', '#af52de'], ['pink', 'ชมพู', '#ff2d55'], ['teal', 'ฟ้าอมเขียว', '#30b0c7'], ['blue', 'น้ำเงิน', '#0a84ff']];
+  var accent = document.documentElement.getAttribute('data-accent') || 'graphite';
+  function applyAccent(id) {
+    accent = id;
+    if (id === 'graphite') document.documentElement.removeAttribute('data-accent'); else document.documentElement.setAttribute('data-accent', id);
+    try { if (id === 'graphite') localStorage.removeItem('ae-accent'); else localStorage.setItem('ae-accent', id); } catch (e) {}
+    renderAccent();
+  }
+  function renderAccent() {
+    $('#accList').innerHTML = ACCENTS.map(function (a) {
+      return '<button class="swatch-opt" role="radio" aria-checked="' + (a[0] === accent) + '" data-a="' + a[0] + '"><span class="dotc' + (a[2] ? '' : ' gr') + '"' + (a[2] ? ' style="--c:' + a[2] + '"' : '') + '><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>' + a[1] + '</button>';
+    }).join('');
+    $('#accList').querySelectorAll('button').forEach(function (b) { b.onclick = function () { applyAccent(b.dataset.a); }; });
+  }
+  $('#btnAccent').onclick = function () { renderAccent(); $('#accWrap').hidden = false; $('#accClose').focus(); };
+  $('#accClose').onclick = function () { $('#accWrap').hidden = true; };
+  $('#accWrap').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('#accWrap').hidden = true; });
+
   /* ---------- ค้นหาเครื่อง + แถบบนที่โปร่งเมื่อเลื่อน ---------- */
   $('#sysCount').textContent = SYSTEMS.length;
   $('#search').addEventListener('input', function () {
@@ -665,5 +766,9 @@
   });
   function onScroll() { $('#homeBar').classList.toggle('scrolled', window.scrollY > 70); }
   window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+  var retId = null;
+  try { retId = sessionStorage.getItem('ae-return'); sessionStorage.removeItem('ae-return'); } catch (e) {}
+  if (retId) { lastIcon = document.querySelector('.app[data-id="' + retId + '"]'); closeTransition(lastIcon); }   // กลับจากหน้าเล่น: ไอคอนหดกลับที่เดิม
 
 })();
