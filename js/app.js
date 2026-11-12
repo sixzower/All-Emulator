@@ -5,8 +5,9 @@
   var CDN = 'https://cdn.emulatorjs.org/stable/data/';
   var LOCAL = 'emulatorjs/data/';   // ถ้าดาวน์โหลดไว้เอง (ดู README) จะใช้ตัวนี้ก่อน ทำงานออฟไลน์ได้
   var current = null;               // { file, system, key }
-  var shots = [];
+  var shots = [], shotSeq = 0;
   var db;
+  var DEMO = /[?&]demo/.test(location.search);   // โหมดตัวอย่าง: จอเกมจำลอง ไม่ต้องใช้อีมูหรือรอม
 
   /* ---------- ไอคอนเครื่อง (รูปทรงต้นฉบับ ไม่ใช้โลโก้จริง) ---------- */
   var GLYPH = {
@@ -78,6 +79,7 @@
     loadNotes(); renderSlots();
     if (sys.heavy) toast('เครื่องนี้ใช้แรงเครื่อง ถ้ากระตุกลองปิดแท็บอื่นก่อน');
 
+    if (DEMO) return demoGame();
     probe(LOCAL + 'loader.js').then(function (hasLocal) {
       var base = hasLocal ? LOCAL : CDN;
       window.EJS_player = '#ejs';
@@ -115,8 +117,7 @@
   $('#btnShot').onclick = function () {
     var done = function (blob) {
       if (!blob) return toast('แคปไม่สำเร็จ ลองใช้ปุ่มแคปในแถบของอีมู');
-      shots.unshift({ url: URL.createObjectURL(blob), name: (current.file.name.replace(/\.[^.]+$/, '')) + '-' + Date.now() + '.png' });
-      renderShots(); toast('เก็บภาพแล้ว (แท็บ "ภาพแคป")');
+      addShot(blob); toast('เก็บภาพแล้ว (แท็บ "ภาพแคป")');
     };
     try {
       var r = emu().gameManager.screenshot();
@@ -124,11 +125,97 @@
     } catch (e) { canvasShot(done); }
   };
   function canvasShot(cb) { var c = document.querySelector('#ejs canvas'); c ? c.toBlob(cb, 'image/png') : cb(null); }
+  function baseName() { return current.file.name.replace(/\.[^.]+$/, ''); }
+  function addShot(blob) {
+    shotSeq++;
+    shots.unshift({ blob: blob, url: URL.createObjectURL(blob), name: baseName() + '-' + String(shotSeq).padStart(3, '0') + '.png' });
+    renderShots();
+  }
   function renderShots() {
-    $('#shotGrid').innerHTML = shots.map(function (s, i) { return '<img src="' + s.url + '" data-i="' + i + '" alt="ภาพแคป ' + (i + 1) + '">'; }).join('');
-    $('#shotGrid').querySelectorAll('img').forEach(function (im) {
-      im.onclick = function () { var a = document.createElement('a'); a.href = shots[im.dataset.i].url; a.download = shots[im.dataset.i].name; a.click(); };
+    var n = shots.length, cnt = $('#shotCount');
+    cnt.hidden = !n; cnt.textContent = n;
+    $('#btnSaveAll').disabled = !n; $('#btnClearAll').disabled = !n;
+    $('#shotHint').hidden = !!n;
+    $('#shotGrid').innerHTML = shots.map(function (s, i) {
+      return '<button data-i="' + i + '" aria-label="เปิดภาพที่ ' + (n - i) + '"><img src="' + s.url + '" alt=""><b>' + (n - i) + '</b></button>';
+    }).join('');
+    $('#shotGrid').querySelectorAll('button').forEach(function (b) { b.onclick = function () { openLB(+b.dataset.i); }; });
+  }
+  function download(blob, name) {
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.hidden = true; document.body.appendChild(a); a.click();
+    setTimeout(function () { a.remove(); URL.revokeObjectURL(a.href); }, 4000);
+  }
+  $('#btnSaveAll').onclick = function () {
+    if (shots.length === 1) return download(shots[0].blob, shots[0].name);
+    toast('กำลังรวมไฟล์…');
+    var list = shots.slice().reverse();   // เรียงจากภาพแรกไปล่าสุด
+    Promise.all(list.map(function (s) { return s.blob.arrayBuffer().then(function (b) { return { name: s.name, data: new Uint8Array(b) }; }); }))
+      .then(function (files) { download(makeZip(files), baseName() + '-screenshots.zip'); toast('บันทึก ' + files.length + ' ภาพแล้ว'); });
+  };
+  $('#btnClearAll').onclick = function () {
+    confirmSheet('ลบภาพแคปทั้งหมด?', 'ภาพ ' + shots.length + ' ภาพจะถูกลบและกู้คืนไม่ได้', 'ลบทั้งหมด', function () {
+      shots.forEach(function (s) { URL.revokeObjectURL(s.url); }); shots = []; renderShots();
     });
+  };
+
+  /* ---------- ดูภาพเต็มจอ ---------- */
+  var lbi = -1;
+  function openLB(i) { lbi = i; $('#lb').hidden = false; showLB(); $('#lbClose').focus(); }
+  function closeLB() { $('#lb').hidden = true; lbi = -1; }
+  function showLB() {
+    var n = shots.length; if (!n) return closeLB();
+    lbi = Math.max(0, Math.min(lbi, n - 1));
+    $('#lbImg').src = shots[lbi].url; $('#lbImg').alt = 'ภาพแคปที่ ' + (n - lbi);
+    $('#lbCount').textContent = (n - lbi) + ' / ' + n;
+    $('#lbPrev').disabled = lbi >= n - 1; $('#lbNext').disabled = lbi <= 0;   // ใหม่สุดอยู่ซ้ายสุดของกริด
+  }
+  function stepLB(d) { lbi += d; showLB(); }
+  function delLB() {
+    confirmSheet('ลบภาพนี้?', 'ภาพจะถูกลบและกู้คืนไม่ได้', 'ลบภาพ', function () {
+      URL.revokeObjectURL(shots[lbi].url); shots.splice(lbi, 1); renderShots(); showLB(); toast('ลบภาพแล้ว');
+    });
+  }
+  $('#lbClose').onclick = closeLB;
+  $('#lbPrev').onclick = function () { stepLB(1); };
+  $('#lbNext').onclick = function () { stepLB(-1); };
+  $('#lbDel').onclick = delLB;
+  $('#lbSave').onclick = function () { download(shots[lbi].blob, shots[lbi].name); };
+  $('#lb').addEventListener('click', function (e) { if (e.target === this || e.target.classList.contains('lb-top')) closeLB(); });
+  var tx = null;
+  $('#lb').addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; }, { passive: true });
+  $('#lb').addEventListener('touchend', function (e) {
+    if (tx === null) return; var dx = e.changedTouches[0].clientX - tx; tx = null;
+    if (Math.abs(dx) > 50) stepLB(dx < 0 ? -1 : 1);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (lbi < 0 || !$('#sheetWrap').hidden) return;
+    if (e.key === 'Escape') closeLB();
+    else if (e.key === 'ArrowLeft') stepLB(-1);
+    else if (e.key === 'ArrowRight') stepLB(1);
+    else if (e.key === 'Delete' || e.key === 'Backspace') delLB();
+  });
+
+  /* ---------- สร้างไฟล์ ZIP (แบบไม่บีบอัด ภาพ PNG บีบมาแล้ว) ---------- */
+  var crcT = (function () { var t = []; for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(b) { var c = -1; for (var i = 0; i < b.length; i++) c = crcT[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ -1) >>> 0; }
+  function makeZip(files) {
+    var enc = new TextEncoder(), parts = [], cen = [], off = 0, cenSize = 0;
+    files.forEach(function (f) {
+      var nm = enc.encode(f.name), crc = crc32(f.data), sz = f.data.length;
+      var lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+      lh.setUint16(12, 0x21, true); lh.setUint32(14, crc, true); lh.setUint32(18, sz, true); lh.setUint32(22, sz, true); lh.setUint16(26, nm.length, true);
+      parts.push(lh, nm, f.data);
+      var ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true);
+      ch.setUint16(14, 0x21, true); ch.setUint32(16, crc, true); ch.setUint32(20, sz, true); ch.setUint32(24, sz, true);
+      ch.setUint16(28, nm.length, true); ch.setUint32(42, off, true);
+      cen.push(ch, nm); cenSize += 46 + nm.length; off += 30 + nm.length + sz;
+    });
+    var end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+    end.setUint32(12, cenSize, true); end.setUint32(16, off, true);
+    return new Blob(parts.concat(cen, [end]), { type: 'application/zip' });
   }
 
   /* ---------- แท็บแผงข้าง ---------- */
@@ -203,17 +290,55 @@
     }, function () { toast('โหลดไม่สำเร็จ'); });
   }
 
-  /* ---------- แผ่น / ข้อความ ---------- */
-  function sheet(title, body, link, linkText) {
+  /* ---------- แผ่น / ข้อความ (iOS action sheet) ---------- */
+  var sheetCb = null;
+  function openSheet(title, body, o) {
+    o = o || {};
     $('#sheetTitle').textContent = title; $('#sheetBody').textContent = body;
-    var a = $('#sheetLink'); a.hidden = !link; if (link) { a.href = link; a.textContent = linkText; }
-    $('#sheetWrap').hidden = false; $('#sheetClose').focus();
+    var a = $('#sheetLink'); a.hidden = !o.link; if (o.link) { a.href = o.link; a.textContent = o.linkText; }
+    var ok = $('#sheetOk'); ok.textContent = o.ok || 'ตกลง'; ok.classList.toggle('destructive', !!o.destructive);
+    $('#sheetCancel').hidden = !o.cb; sheetCb = o.cb || null;
+    $('#sheetWrap').hidden = false; ok.focus();
   }
-  $('#sheetClose').onclick = function () { $('#sheetWrap').hidden = true; };
-  $('#sheetWrap').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('#sheetWrap').hidden = true; });
+  function sheet(title, body, link, linkText) { openSheet(title, body, { link: link, linkText: linkText }); }
+  function confirmSheet(title, body, okText, cb) { openSheet(title, body, { ok: okText, destructive: true, cb: cb }); }
+  function closeSheet() { $('#sheetWrap').hidden = true; sheetCb = null; }
+  $('#sheetOk').onclick = function () { var cb = sheetCb; closeSheet(); if (cb) cb(); };
+  $('#sheetCancel').onclick = closeSheet;
+  $('#sheetWrap').addEventListener('click', function (e) { if (e.target === this) closeSheet(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('#sheetWrap').hidden) closeSheet(); });
   var tt;
   function toast(msg) { var t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(tt); tt = setTimeout(function () { t.hidden = true; }, 3200); }
 
+
+  /* ---------- โหมดตัวอย่าง (?demo) ---------- */
+  var DEMO_LINES = ['ยินดีต้อนรับ นักเดินทาง!\nวันนี้มีดาบเล่มใหม่มาถึงพอดี', 'ถ้าเจอมังกรอย่าลืมเก็บ\nน้ำผึ้งไว้รักษาแผลด้วยนะ', 'ขอบคุณที่ช่วยหมู่บ้านของเรา\nเชิญพักที่โรงเตี๊ยมได้เลย'];
+  function drawDemo(c, i) {
+    var g = c.getContext('2d'), w = c.width, h = c.height;
+    var sky = g.createLinearGradient(0, 0, 0, h * .6); sky.addColorStop(0, ['#1b3a66', '#5a2d6b', '#2d6a8f'][i % 3]); sky.addColorStop(1, ['#4f95c9', '#e9876a', '#9fd6e8'][i % 3]);
+    g.fillStyle = sky; g.fillRect(0, 0, w, h * .6);
+    g.fillStyle = ['#2f6b3a', '#3d5a2a', '#2b7a55'][i % 3]; g.fillRect(0, h * .6, w, h * .4);
+    g.fillStyle = '#1f4a28'; for (var x = 0; x < w; x += 16) g.fillRect(x, h * .6 + ((x / 16) % 2) * 6, 8, 4);
+    g.fillStyle = '#e8c07a'; g.fillRect(w * .42, h * .38, 22, 26); g.fillStyle = '#c0392b'; g.fillRect(w * .42, h * .38 + 14, 22, 12);
+    g.fillStyle = '#222'; g.fillRect(w * .42 + 5, h * .38 + 6, 3, 3); g.fillRect(w * .42 + 14, h * .38 + 6, 3, 3);
+    g.fillStyle = 'rgba(10,14,40,.94)'; g.fillRect(10, h - 58, w - 20, 48);
+    g.strokeStyle = '#e8ecff'; g.lineWidth = 2; g.strokeRect(11, h - 57, w - 22, 46);
+    g.fillStyle = '#ffd166'; g.font = '10px "Noto Sans Thai",sans-serif'; g.fillText(['พ่อค้า', 'ชาวบ้าน', 'ผู้ใหญ่บ้าน'][i % 3], 18, h - 44);
+    g.fillStyle = '#fff'; g.font = '11px "Noto Sans Thai",sans-serif';
+    DEMO_LINES[i % 3].split('\n').forEach(function (t, k) { g.fillText(t, 18, h - 30 + k * 13); });
+  }
+  function demoGame() {
+    var c = document.createElement('canvas'); c.width = 240; c.height = 160; c.className = 'demo';
+    $('#ejs').appendChild(c); $('#loading').hidden = true; drawDemo(c, 0);
+    var tmp = document.createElement('canvas'); tmp.width = 240; tmp.height = 160;
+    var chain = Promise.resolve();
+    [2, 1, 0].forEach(function (i) {
+      chain = chain.then(function () { drawDemo(tmp, i); return new Promise(function (r) { tmp.toBlob(function (b) { addShot(b); r(); }, 'image/png'); }); });
+    });
+    notes = [{ tag: 'ฟอนต์', text: 'ร้านค้า: สระบนซ้อนทับบรรทัดบน', time: 'วันนี้ 14:02' }, { tag: 'ข้อความล้น', text: 'เมนูเริ่มต้น: "ดำเนินการต่อ" ยาวเกินช่อง', time: 'วันนี้ 14:05' }, { tag: 'ผ่าน', text: 'บทนำ: แสดงผลปกติทั้งฉาก', time: 'วันนี้ 14:09' }];
+    renderNotes();
+  }
+
   buildHome();
+  if (DEMO) launch(SYSTEMS.filter(function (x) { return x.id === 'gba'; })[0], new File(['x'], 'ตำนานดาบสุดท้าย (แปลไทย).gba'));
 })();
