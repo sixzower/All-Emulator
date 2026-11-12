@@ -445,25 +445,29 @@
   $('#ctlWrap').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('#ctlWrap').hidden = true; });
 
-  /* ---------- ธีม สว่าง / มืด / อัตโนมัติ ---------- */
-  var THEME_ICONS = {
-    auto: '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" class="solid"/>',
-    light: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
-    dark: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'
-  };
-  var THEME_NAME = { auto: 'อัตโนมัติ', light: 'สว่าง', dark: 'มืด' };
+  /* ---------- ธีม สว่าง / มืด (ปุ่มเดียว แตะสลับ · กดค้างเพื่อกลับไปตามระบบ) ---------- */
+  var ICON_SUN = '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>';
+  var ICON_MOON = '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>';
+  var darkMQ = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : { matches: false };
   var theme = 'auto';
   try { var tsv = localStorage.getItem('ae-theme'); if (tsv === 'light' || tsv === 'dark') theme = tsv; } catch (e) {}
+  function effectiveTheme() { return theme === 'auto' ? (darkMQ.matches ? 'dark' : 'light') : theme; }
   function applyTheme(m, say) {
     theme = m;
     if (m === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', m);
     try { if (m === 'auto') localStorage.removeItem('ae-theme'); else localStorage.setItem('ae-theme', m); } catch (e) {}
-    document.querySelectorAll('[data-theme-set]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.themeSet === m ? 'true' : 'false'); });
-    var tb = document.querySelector('#btnTheme svg'); if (tb) tb.innerHTML = THEME_ICONS[m];
-    if (say) toast('ธีม: ' + THEME_NAME[m]);
+    var dark = effectiveTheme() === 'dark';
+    document.querySelectorAll('[data-theme-toggle] svg').forEach(function (v) { v.innerHTML = dark ? ICON_MOON : ICON_SUN; });   // แสดงสถานะปัจจุบัน
+    if (say) toast(m === 'auto' ? 'ธีม: ตามระบบ' : 'ธีม: ' + (m === 'dark' ? 'มืด' : 'สว่าง'));
   }
-  document.querySelectorAll('[data-theme-set]').forEach(function (b) { b.onclick = function () { applyTheme(b.dataset.themeSet); }; });
-  $('#btnTheme').onclick = function () { applyTheme({ auto: 'light', light: 'dark', dark: 'auto' }[theme], true); };
+  document.querySelectorAll('[data-theme-toggle]').forEach(function (b) {
+    var timer = null, long = false;
+    b.addEventListener('pointerdown', function () { long = false; timer = setTimeout(function () { long = true; applyTheme('auto', true); }, 650); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function () { clearTimeout(timer); }); });
+    b.addEventListener('click', function (e) { if (long) { long = false; return; } applyTheme(effectiveTheme() === 'dark' ? 'light' : 'dark'); });
+    b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  });
+  if (darkMQ.addEventListener) darkMQ.addEventListener('change', function () { if (theme === 'auto') applyTheme('auto'); });
   applyTheme(theme);
 
   /* ---------- ค้นหาเครื่อง + แถบบนที่โปร่งเมื่อเลื่อน ---------- */

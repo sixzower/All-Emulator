@@ -14,11 +14,7 @@
 <main id="home" class="home">
   <div class="home-bar glass" id="homeBar">
     <span class="bar-title">All-Emulator</span>
-    <div class="theme-seg" role="group" aria-label="ธีมหน้าจอ">
-      <button data-theme-set="auto" aria-label="อัตโนมัติตามเครื่อง" title="อัตโนมัติ"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" class="solid"/></svg></button>
-      <button data-theme-set="light" aria-label="โหมดสว่าง" title="สว่าง"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.600 5.600L7 7M17 17l1.400 1.400M5.600 18.400L7 17M17 7l1.400-1.400"/></svg></button>
-      <button data-theme-set="dark" aria-label="โหมดมืด" title="มืด"><svg viewBox="0 0 24 24"><path d="M20 14.500A8 8 0 1 1 9.500 4a6.500 6.500 0 0 0 10.500 10.500z"/></svg></button>
-    </div>
+    <button class="theme-btn" data-theme-toggle aria-label="สลับโหมดสว่าง/มืด" title="สลับโหมดสว่าง/มืด (กดค้างเพื่อกลับไปตามระบบ)"><svg viewBox="0 0 24 24"></svg></button>
   </div>
 
   <header class="home-head">
@@ -69,8 +65,8 @@
         <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span>เต็มจอ</span></button>
       <button class="tool" id="btnCtl" aria-label="ปุ่มควบคุม" title="ปุ่มควบคุมของเครื่องนี้">
         <svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="5"/><path d="M8 10v4M6 12h4"/><circle cx="16" cy="11" r=".9" class="solid"/><circle cx="18" cy="13" r=".9" class="solid"/></svg><span>ควบคุม</span></button>
-      <button class="tool" id="btnTheme" aria-label="เปลี่ยนธีม" title="เปลี่ยนธีม">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" class="solid"/></svg><span>ธีม</span></button>
+      <button class="tool" id="btnTheme" data-theme-toggle aria-label="สลับโหมดสว่าง/มืด" title="สลับโหมดสว่าง/มืด (กดค้างเพื่อกลับไปตามระบบ)">
+        <svg viewBox="0 0 24 24"></svg><span>ธีม</span></button>
       <button class="tool on" id="btnPanel" aria-label="แผงโน้ต" title="แผงโน้ต">
         <svg viewBox="0 0 24 24"><rect x="3" y="4.500" width="18" height="15" rx="3"/><path d="M15 4.500v15"/></svg><span>แผง</span></button>
     </div>
