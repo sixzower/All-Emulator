@@ -307,12 +307,38 @@
     }).join('') : '<li class="hint">ยังไม่มีโน้ต พิมพ์จุดที่เจอปัญหาแล้วกด "เพิ่ม"</li>';
     $('#noteList').querySelectorAll('.x').forEach(function (b) { b.onclick = function () { notes.splice(b.dataset.i, 1); saveNotes(); renderNotes(); }; });
   }
-  document.querySelectorAll('.chip').forEach(function (c) {
-    c.onclick = function () {
-      $('#noteTag').value = c.dataset.tag;
-      document.querySelectorAll('.chip').forEach(function (x) { var on = x === c; x.classList.toggle('on', on); x.setAttribute('aria-checked', on ? 'true' : 'false'); });
+  /* ---------- ดรอปดาวน์ประเภทโน้ต (แบบ iOS pop-up menu) ---------- */
+  var ddOpts = Array.prototype.slice.call(document.querySelectorAll('#ddMenu [role=option]'));
+  function ddSelect(o) {
+    $('#noteTag').value = o.dataset.v; $('#ddLabel').textContent = o.dataset.v;
+    $('#ddBtn .dot').className = 'dot ' + o.dataset.c;
+    ddOpts.forEach(function (x) { x.setAttribute('aria-selected', x === o ? 'true' : 'false'); });
+  }
+  function ddOpen() {
+    var btn = $('#ddBtn'), m = $('#ddMenu'), r = btn.getBoundingClientRect();
+    m.hidden = false; m.style.width = Math.max(r.width, 200) + 'px';
+    var h = m.offsetHeight, below = innerHeight - r.bottom, up = below < h + 12 && r.top > below;
+    m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px';
+    m.style.top = (up ? r.top - h - 6 : r.bottom + 6) + 'px';
+    m.style.transformOrigin = up ? 'bottom left' : 'top left';
+    btn.setAttribute('aria-expanded', 'true');
+    (ddOpts.filter(function (x) { return x.getAttribute('aria-selected') === 'true'; })[0] || ddOpts[0]).focus();
+  }
+  function ddClose(refocus) { $('#ddMenu').hidden = true; $('#ddBtn').setAttribute('aria-expanded', 'false'); if (refocus) $('#ddBtn').focus(); }
+  $('#ddBtn').onclick = function () { $('#ddMenu').hidden ? ddOpen() : ddClose(); };
+  ddOpts.forEach(function (o, i) {
+    o.onclick = function () { ddSelect(o); ddClose(true); };
+    o.onkeydown = function (e) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); ddOpts[(i + 1) % ddOpts.length].focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); ddOpts[(i + ddOpts.length - 1) % ddOpts.length].focus(); }
+      else if (e.key === 'Escape') { e.stopPropagation(); ddClose(true); }
+      else if (e.key === 'Tab') ddClose();
     };
   });
+  document.addEventListener('pointerdown', function (e) { if (!$('#ddMenu').hidden && !e.target.closest('#ddMenu, #ddBtn')) ddClose(); });
+  window.addEventListener('resize', function () { ddClose(); });
+  $('#panel').addEventListener('scroll', function () { ddClose(); });
+  ddSelect(ddOpts[0]);
   $('#noteForm').onsubmit = function (e) {
     e.preventDefault();
     var t = $('#noteText').value.trim(); if (!t) return;

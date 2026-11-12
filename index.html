@@ -85,7 +85,10 @@
       <div class="tab" id="tab-notes">
         <form id="noteForm" class="note-form">
           <input type="hidden" id="noteTag" value="ฟอนต์">
-          <div class="chips" role="radiogroup" aria-label="ประเภทปัญหา"><button type="button" class="chip on" data-tag="ฟอนต์" role="radio" aria-checked="true">ฟอนต์</button><button type="button" class="chip" data-tag="ข้อความล้น" role="radio" aria-checked="false">ข้อความล้น</button><button type="button" class="chip" data-tag="คำผิด" role="radio" aria-checked="false">คำผิด</button><button type="button" class="chip" data-tag="สระ/วรรณยุกต์" role="radio" aria-checked="false">สระ/วรรณยุกต์</button><button type="button" class="chip" data-tag="ผ่าน" role="radio" aria-checked="false">ผ่าน</button></div>
+          <button type="button" class="dd-btn" id="ddBtn" aria-haspopup="listbox" aria-expanded="false" aria-controls="ddMenu" aria-label="ประเภทปัญหา">
+            <span class="dot bad"></span><span id="ddLabel">ฟอนต์</span>
+            <svg viewBox="0 0 24 24"><path d="M8 9.500l4-4 4 4M8 14.500l4 4 4-4"/></svg>
+          </button>
           <input id="noteText" placeholder="เช่น ร้านค้า: สระบนซ้อนบรรทัด" autocomplete="off">
           <button class="pill tint">เพิ่ม</button>
         </form>
@@ -140,6 +143,15 @@
     <button class="circle del" id="lbDel" aria-label="ลบภาพนี้"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button>
   </figure>
   <button class="lb-nav next" id="lbNext" aria-label="ภาพถัดไป"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+</div>
+
+<!-- ===== เมนูดรอปดาวน์ประเภทโน้ต (แบบ iOS pop-up menu) ===== -->
+<div id="ddMenu" class="dd-menu glass" role="listbox" aria-label="ประเภทปัญหา" hidden>
+  <button type="button" role="option" data-v="ฟอนต์" data-c="bad">ฟอนต์</button>
+  <button type="button" role="option" data-v="ข้อความล้น" data-c="warn">ข้อความล้น</button>
+  <button type="button" role="option" data-v="คำผิด" data-c="bad">คำผิด</button>
+  <button type="button" role="option" data-v="สระ/วรรณยุกต์" data-c="warn">สระ/วรรณยุกต์</button>
+  <button type="button" role="option" data-v="ผ่าน" data-c="ok">ผ่าน</button>
 </div>
 
 <!-- ===== ปุ่มควบคุมของเครื่อง ===== -->
