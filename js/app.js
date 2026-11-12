@@ -28,15 +28,15 @@
     var html = '';
     GROUPS.forEach(function (g) {
       var items = SYSTEMS.filter(function (s) { return s.group === g.id; });
-      html += '<section class="group"><h2>' + g.title + '</h2><div class="grid glass">';
+      html += '<section class="group"><h2>' + g.title + '</h2><div class="grid card">';
       items.forEach(function (s) {
-        html += '<button class="app" data-id="' + s.id + '">' + icon(s) + '<span class="lbl">' + s.name + '</span>' + (s.heavy ? '<span class="sub">ใช้แรงเครื่อง</span>' : '') + '</button>';
+        html += '<button class="app" data-id="' + s.id + '" data-q="' + (s.name + ' ' + s.short).toLowerCase() + '">' + icon(s) + '<span class="lbl">' + s.name + '</span>' + (s.heavy ? '<span class="sub">ใช้แรงเครื่อง</span>' : '') + '</button>';
       });
       html += '</div></section>';
     });
-    html += '<section class="group"><h2>ยังรันในเว็บไม่ได้</h2><div class="grid glass">';
+    html += '<section class="group"><h2>ยังรันในเว็บไม่ได้</h2><div class="grid card">';
     UNSUPPORTED.forEach(function (s) {
-      html += '<button class="app off" data-off="' + s.id + '">' + icon({ glyph: s.glyph, short: s.short, c: ['#8a90a0', '#4a4f5e'] }) + '<span class="lbl">' + s.name + '</span></button>';
+      html += '<button class="app off" data-off="' + s.id + '" data-q="' + (s.name + ' ' + s.short).toLowerCase() + '">' + icon({ glyph: s.glyph, short: s.short, c: ['#8a90a0', '#4a4f5e'] }) + '<span class="lbl">' + s.name + '</span></button>';
     });
     html += '</div></section>';
     $('#groups').innerHTML = html;
@@ -340,5 +340,37 @@
   }
 
   buildHome();
+
+  /* ---------- ธีม สว่าง / มืด / อัตโนมัติ ---------- */
+  var THEME_ICONS = {
+    auto: '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" class="solid"/>',
+    light: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
+    dark: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'
+  };
+  var THEME_NAME = { auto: 'อัตโนมัติ', light: 'สว่าง', dark: 'มืด' };
+  var theme = 'auto';
+  try { var tsv = localStorage.getItem('ae-theme'); if (tsv === 'light' || tsv === 'dark') theme = tsv; } catch (e) {}
+  function applyTheme(m, say) {
+    theme = m;
+    if (m === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', m);
+    try { if (m === 'auto') localStorage.removeItem('ae-theme'); else localStorage.setItem('ae-theme', m); } catch (e) {}
+    document.querySelectorAll('[data-theme-set]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.themeSet === m ? 'true' : 'false'); });
+    var tb = document.querySelector('#btnTheme svg'); if (tb) tb.innerHTML = THEME_ICONS[m];
+    if (say) toast('ธีม: ' + THEME_NAME[m]);
+  }
+  document.querySelectorAll('[data-theme-set]').forEach(function (b) { b.onclick = function () { applyTheme(b.dataset.themeSet); }; });
+  $('#btnTheme').onclick = function () { applyTheme({ auto: 'light', light: 'dark', dark: 'auto' }[theme], true); };
+  applyTheme(theme);
+
+  /* ---------- ค้นหาเครื่อง + แถบบนที่โปร่งเมื่อเลื่อน ---------- */
+  $('#sysCount').textContent = SYSTEMS.length;
+  $('#search').addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase(), any = false;
+    document.querySelectorAll('.app').forEach(function (a) { var ok = !q || a.dataset.q.indexOf(q) > -1; a.hidden = !ok; if (ok) any = true; });
+    document.querySelectorAll('.group').forEach(function (g) { g.hidden = !g.querySelector('.app:not([hidden])'); });
+    $('#empty').hidden = any;
+  });
+  function onScroll() { $('#homeBar').classList.toggle('scrolled', window.scrollY > 70); }
+  window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
   if (DEMO) launch(SYSTEMS.filter(function (x) { return x.id === 'gba'; })[0], new File(['x'], 'ตำนานดาบสุดท้าย (แปลไทย).gba'));
 })();
