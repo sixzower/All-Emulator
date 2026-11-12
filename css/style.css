@@ -1,0 +1,95 @@
+/* สไตล์แบบ iOS: ผิวกระจกฝ้า, ไอคอนมุมโค้ง squircle, สีน้ำเงินระบบ, ตามธีมมืด/สว่างของเครื่อง */
+:root{
+  --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','Noto Sans Thai','Sukhumvit Set','Thonburi',system-ui,sans-serif;
+  --bg1:#e9ecf5; --bg2:#d6def3; --fg:#111319; --mut:#6b7285; --tint:#0a84ff;
+  --glass:rgba(255,255,255,.66); --glass-line:rgba(0,0,0,.08); --fill:rgba(120,120,140,.14);
+  --ok:#30b05a; --warn:#e8970c; --bad:#e5484d;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg1:#0b0d14; --bg2:#171b2e; --fg:#f2f4fa; --mut:#9aa2b6; --tint:#0a84ff;
+  --glass:rgba(30,33,46,.62); --glass-line:rgba(255,255,255,.1); --fill:rgba(160,165,190,.18);
+  color-scheme:dark;}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;font-family:var(--font);color:var(--fg);font-size:16px;line-height:1.5;
+  background:radial-gradient(1200px 700px at 20% -10%,var(--bg2),transparent 60%),var(--bg1);background-attachment:fixed;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+[hidden]{display:none!important}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--tint) 60%,transparent);outline-offset:2px;border-radius:12px}
+.glass{background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);border:1px solid var(--glass-line)}
+
+/* ---------- หน้าคลัง ---------- */
+.home{max-width:980px;margin:0 auto;padding:40px 20px 56px}
+.home-head h1{font-size:34px;line-height:1.2;margin:0;font-weight:700;letter-spacing:-.01em}
+.home-head p{margin:6px 0 28px;color:var(--mut)}
+.group{margin-bottom:26px}
+.group h2{font-size:13px;font-weight:600;color:var(--mut);margin:0 0 10px 8px;letter-spacing:.02em}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:22px 12px;padding:22px 16px;border-radius:30px}
+.app{display:flex;flex-direction:column;align-items:center;gap:7px;padding:2px;transition:transform .15s}
+.app:active{transform:scale(.92)}
+.app .lbl{font-size:12px;line-height:1.25;text-align:center;max-width:92px;font-weight:500}
+.app .sub{font-size:10px;color:var(--mut);margin-top:-5px}
+.app.drop .icon{transform:scale(1.12);box-shadow:0 0 0 4px var(--tint)}
+.icon{position:relative;width:68px;height:68px;border-radius:22.37%;display:grid;place-items:center;overflow:hidden;
+  box-shadow:0 6px 16px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .15s,box-shadow .15s}
+.icon::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.28),transparent 45%)}
+.icon svg{width:46px;height:46px;position:relative;z-index:1;margin-top:-6px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+.icon em{position:absolute;z-index:2;left:0;right:0;bottom:5px;text-align:center;font-style:normal;font-size:10px;font-weight:700;color:#fff;letter-spacing:.04em;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+.app.off .icon{filter:grayscale(1);opacity:.5}
+.foot{color:var(--mut);font-size:13px;text-align:center;margin-top:30px}
+@media(max-width:480px){.home{padding-top:24px}.grid{grid-template-columns:repeat(4,1fr);gap:20px 4px;padding:18px 8px}.icon{width:62px;height:62px}}
+
+/* ---------- หน้าเล่น ---------- */
+.play{height:100dvh;display:flex;flex-direction:column;gap:10px;padding:10px}
+body:has(.play:not([hidden])){padding:0}
+.bar{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:18px;flex-wrap:wrap}
+.back{color:var(--tint);font-weight:600;padding:6px 10px;border-radius:10px}
+.ttl{display:flex;flex-direction:column;min-width:0;flex:1}
+.ttl b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.ttl span{font-size:12px;color:var(--mut)}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+.tool,.ghost,.tint{padding:7px 13px;border-radius:999px;background:var(--fill);font-size:14px;font-weight:500}
+.tool.on{background:var(--tint);color:#fff}
+.tint{background:var(--tint);color:#fff}
+.tint.wide{width:100%;padding:12px;border-radius:14px;font-weight:600}
+.ghost{width:100%;border-radius:12px;margin-top:8px}
+.play-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:10px}
+.play-body.nopanel{grid-template-columns:minmax(0,1fr)}
+.play-body.nopanel .panel{display:none}
+.screen{position:relative;background:#000;border-radius:18px;overflow:hidden;min-height:0}
+#ejs{position:absolute;inset:0}
+.loading{position:absolute;inset:0;display:grid;place-items:center;color:#aab;font-size:14px;pointer-events:none}
+.panel{border-radius:18px;padding:10px;display:flex;flex-direction:column;gap:10px;min-height:0;overflow:auto}
+.seg{display:flex;background:var(--fill);border-radius:10px;padding:2px}
+.seg button{flex:1;padding:6px;border-radius:8px;font-size:13px;font-weight:500}
+.seg button.on{background:var(--glass);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.note-form{display:grid;grid-template-columns:1fr auto;gap:6px}
+.note-form select{grid-column:1/-1}
+.note-form select,.note-form input{background:var(--fill);border:0;border-radius:10px;padding:8px 10px;min-width:0}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.list li{background:var(--fill);border-radius:12px;padding:8px 10px;font-size:14px;display:grid;gap:2px}
+.list .m{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--mut)}
+.list .x{color:var(--bad);font-size:12px}
+.tag{font-size:11px;font-weight:600;padding:0 8px;border-radius:99px;border:1px solid currentColor}
+.tag.ผ่าน{color:var(--ok)}.tag.ฟอนต์,.tag.คำผิด{color:var(--bad)}.tag.ข้อความล้น,.tag.สระ\/วรรณยุกต์{color:var(--warn)}
+.hint{font-size:12.5px;color:var(--mut);margin:0}
+.shots{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.shots img{width:100%;border-radius:10px;display:block;cursor:pointer;background:#000}
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.slot{background:var(--fill);border-radius:12px;padding:10px;display:grid;gap:6px;font-size:13px}
+.slot .r{display:flex;gap:6px}
+.slot .r button{flex:1;padding:5px;border-radius:8px;background:var(--glass);font-size:12px;font-weight:600}
+.slot small{color:var(--mut)}
+@media(max-width:860px){.play{height:auto;min-height:100dvh}.play-body{grid-template-columns:1fr}.screen{height:62vh}}
+
+/* ---------- แผ่น/ข้อความ ---------- */
+.sheet-wrap{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:12px}
+.sheet{width:min(460px,100%);border-radius:26px;padding:22px;display:grid;gap:10px;animation:up .25s ease-out}
+.sheet h2{margin:0;font-size:19px}.sheet p{margin:0;color:var(--mut)}
+.tint-link{color:var(--tint);font-weight:600;text-decoration:none}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);padding:10px 18px;border-radius:99px;font-size:14px;z-index:60;max-width:90vw;text-align:center}
+@keyframes up{from{transform:translateY(30px);opacity:0}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

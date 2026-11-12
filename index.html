@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>All-Emulator · ห้องทดสอบเกมแปลไทย</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ===== หน้าคลังเครื่อง ===== -->
+<main id="home" class="home">
+  <header class="home-head">
+    <h1>All-Emulator</h1>
+    <p>แตะเครื่องเล่น เลือกไฟล์เกมจากคอม แล้วทดสอบได้ทันที</p>
+  </header>
+  <div id="groups"></div>
+  <p class="foot">ไฟล์เกมไม่ถูกอัปโหลดไปที่ไหน ทำงานในเครื่องของคุณทั้งหมด · ลากไฟล์มาวางบนไอคอนก็ได้</p>
+</main>
+
+<!-- ===== หน้าเล่นทดสอบ ===== -->
+<section id="play" class="play" hidden>
+  <header class="bar glass">
+    <button class="back" id="btnBack" aria-label="กลับคลัง">‹ คลัง</button>
+    <div class="ttl"><b id="gameTitle">—</b><span id="gameSys"></span></div>
+    <div class="tools">
+      <button class="tool" id="btnFast">เร่ง</button>
+      <button class="tool" id="btnShot">แคปจอ</button>
+      <button class="tool" id="btnFull">เต็มจอ</button>
+      <button class="tool tint" id="btnPanel">แผงโน้ต</button>
+    </div>
+  </header>
+
+  <div class="play-body" id="playBody">
+    <div class="screen"><div id="ejs"></div><div class="loading" id="loading">กำลังเตรียมอีมูเลเตอร์…</div></div>
+
+    <aside class="panel glass" id="panel">
+      <div class="seg" role="tablist">
+        <button class="on" data-tab="notes">โน้ต</button>
+        <button data-tab="shots">ภาพแคป</button>
+        <button data-tab="slots">เซฟด่วน</button>
+      </div>
+
+      <div class="tab" id="tab-notes">
+        <form id="noteForm" class="note-form">
+          <select id="noteTag" aria-label="ประเภท">
+            <option value="ฟอนต์">ฟอนต์</option>
+            <option value="ข้อความล้น">ข้อความล้น</option>
+            <option value="คำผิด">คำผิด</option>
+            <option value="สระ/วรรณยุกต์">สระ/วรรณยุกต์</option>
+            <option value="ผ่าน">ผ่าน</option>
+          </select>
+          <input id="noteText" placeholder="เช่น ร้านค้า: สระบนซ้อนบรรทัด" autocomplete="off">
+          <button class="tint">เพิ่ม</button>
+        </form>
+        <ul id="noteList" class="list"></ul>
+        <button class="ghost" id="btnExport">ส่งออกโน้ตเป็นไฟล์ .txt</button>
+      </div>
+
+      <div class="tab" id="tab-shots" hidden>
+        <p class="hint">กด "แคปจอ" เพื่อเก็บภาพ แตะภาพเพื่อบันทึกลงเครื่อง</p>
+        <div id="shotGrid" class="shots"></div>
+      </div>
+
+      <div class="tab" id="tab-slots" hidden>
+        <p class="hint">บันทึก/โหลดสถานะเกมด่วน 4 ช่อง (เก็บในเบราว์เซอร์) ใช้เมนูของอีมูเองควบคู่ได้</p>
+        <div id="slotList" class="slots"></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ===== แผ่นแจ้งเตือน (iOS sheet) ===== -->
+<div id="sheetWrap" class="sheet-wrap" hidden>
+  <div class="sheet glass" role="dialog" aria-modal="true">
+    <h2 id="sheetTitle"></h2>
+    <p id="sheetBody"></p>
+    <a id="sheetLink" class="tint-link" target="_blank" rel="noopener" hidden></a>
+    <button class="tint wide" id="sheetClose">ตกลง</button>
+  </div>
+</div>
+
+<div id="toast" class="toast glass" hidden></div>
+
+<script src="js/systems.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
