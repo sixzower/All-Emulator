@@ -53,16 +53,18 @@ svg.fill,svg .solid{fill:currentColor;stroke:none}
 .theme-btn:active{transform:scale(.88)}
 .theme-btn svg{width:17px;height:17px;stroke-width:1.9}
 .home-head{padding:calc(16px + env(safe-area-inset-top,0px)) 0 18px}
-.hero{display:flex;align-items:center;gap:18px;margin-bottom:20px}
+.hero{display:flex;align-items:center;gap:18px;margin-bottom:20px;flex-wrap:wrap}
 .hero-icon{position:relative;flex:none;width:84px;height:84px;border-radius:22.37%;display:grid;place-items:center;overflow:hidden;background:linear-gradient(160deg,#4a4a52,#0c0c0f);box-shadow:0 10px 24px rgba(0,0,0,.28),0 1px 3px rgba(0,0,0,.2),inset 0 .5px 0 rgba(255,255,255,.35)}
 .hero-icon::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0) 50%,rgba(0,0,0,.1))}
 .hero-icon svg{width:64px;height:64px;position:relative;z-index:1;fill:initial;stroke:none}
-.hero-text{flex:1;min-width:0}
+.hero-text{flex:1;min-width:220px}
+.hero .search{flex:0 1 340px;margin:0}
+.hero .theme-btn{flex:none}
 .home-head .hero-text h1{font-size:36px;line-height:1.1;margin:0;font-weight:700;letter-spacing:-.025em}
 .home-head .hero-text p{margin:0}
 .home-head .tagline{margin-top:3px!important;font-size:17px;font-weight:600}
 .home-head .hero-sub{margin-top:3px!important;color:var(--mut);font-size:14.5px;text-wrap:balance}
-.hero .theme-btn{align-self:flex-start;margin-left:0}
+.hero .theme-btn{margin-left:0}
 .search{display:flex;align-items:center;gap:8px;background:var(--fill);border-radius:12px;padding:0 12px;height:38px;color:var(--mut);margin-bottom:16px}
 .search svg{width:18px;height:18px;flex:none}
 .search input{flex:1;min-width:0;background:none;border:0;outline:0;font-size:16px;color:var(--fg);height:100%}
@@ -313,3 +315,8 @@ kbd{font-family:inherit;font-size:13px;font-weight:600;min-width:30px;text-align
 .foot a{color:var(--fg);font-weight:600}
 
 .lab{color:var(--mut);font-weight:inherit}
+
+@media(max-width:760px){
+  .hero-icon{order:0}.hero-text{order:1}.hero .theme-btn{order:2;align-self:flex-start}
+  .hero .search{order:3;flex:1 1 100%}
+}
