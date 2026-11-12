@@ -2,7 +2,7 @@
 """เซิร์ฟเวอร์ในเครื่อง:  python serve.py [พอร์ต] [--isolate]
 - เสิร์ฟหน้าเว็บ (เข้าได้เฉพาะเครื่องนี้ที่ 127.0.0.1)
 - โหมด "เปิดด้วยโปรแกรมในเครื่อง": อ่านรายการเกมจากโฟลเดอร์ที่ตั้งใน emulators.json แล้วสั่งเปิดอีมู (3DS, PS2, Wii ฯลฯ)
---isolate เปิด header ที่ core บางตัว (เช่น PSP) ต้องใช้ แต่ทำให้โหลดอีมูจาก CDN ไม่ได้ ใช้ร่วมกับโหมดออฟไลน์ใน README เท่านั้น"""
+--isolate เปิด header ที่ core บางตัว (เช่น PSP) ต้องใช้ (COOP same-origin + COEP credentialless) ใช้ได้กับ Chrome/Edge"""
 import json, os, re, shutil, subprocess, sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
@@ -88,7 +88,7 @@ class H(SimpleHTTPRequestHandler):
     def end_headers(self):
         if ISOLATE:
             self.send_header("Cross-Origin-Opener-Policy", "same-origin")
-            self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
+            self.send_header("Cross-Origin-Embedder-Policy", "credentialless")
         self.send_header("Cache-Control", "no-cache")
         super().end_headers()
 

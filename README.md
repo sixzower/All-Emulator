@@ -16,6 +16,16 @@ python serve.py
 โปรเจกต์เป็นไฟล์ static (ไม่มีไฟล์เกมหรือ BIOS อยู่ใน repo) ใช้ GitHub Pages ได้: Settings → Pages → Source: *Deploy from a branch* → เลือก branch หลัก และโฟลเดอร์ `/ (root)` → Save จากนั้นเข้าที่ `https://<ชื่อผู้ใช้>.github.io/All-Emulator/`
 เวอร์ชันออนไลน์เล่นเกมในเว็บได้ตามปกติ (ไฟล์เกมอ่านในเครื่องผู้ใช้ ไม่ถูกอัปโหลด) แต่ฟีเจอร์ที่ต้องใช้ `serve.py` (เปิด 3DS/PS2/Wii ด้วยโปรแกรมในเครื่อง และช่องใส่ BIOS) จะถูกซ่อน และ PSP ในเว็บมักเปิดไม่ติดเพราะ Pages ตั้ง header ที่ต้องใช้ไม่ได้
 
+## เปิดเป็นเว็บบน Vercel (รองรับ PSP ในเว็บ)
+มีไฟล์ `vercel.json` ตั้ง header ที่ PSP ต้องใช้ไว้ให้แล้ว (`Cross-Origin-Opener-Policy: same-origin` และ `Cross-Origin-Embedder-Policy: credentialless`) ไม่ต้องมีขั้นตอน build:
+1. เข้า https://vercel.com → Add New → Project → นำเข้า repo `All-Emulator`
+2. Framework Preset: **Other** · Build Command และ Output Directory: ปล่อยว่าง
+3. ถ้า branch หลักของ repo ไม่ใช่ branch ที่ต้องการ ไปที่ Settings → Git → Production Branch แล้วเลือกให้ถูก
+4. Deploy
+
+ตรวจว่าเปิดโหมดหลายเธรดสำเร็จ: เปิดเว็บ กด F12 แล้วพิมพ์ `crossOriginIsolated` ใน Console ต้องได้ `true` (ทำงานบน Chrome/Edge เท่านั้น Safari ยังไม่รองรับ header นี้) ใช้ `python serve.py --isolate` ทดสอบในเครื่องได้เหมือนกัน
+PSP ยังหนักมาก ถ้ากระตุกแนะนำ PPSSPP
+
 ## ฟีเจอร์ช่วยทดสอบคำแปล (หน้าเล่น)
 - **โน้ตบั๊ก**: เลือกประเภท (ฟอนต์ / ข้อความล้น / คำผิด / สระ-วรรณยุกต์ / ผ่าน) พิมพ์รายละเอียด และแนบภาพแคปไปกับโน้ตได้
 - **ภาพแคป**: แตะดูเต็มจอ วาดวงกลม/ขีดเส้นชี้จุดที่ผิด (ปุ่มดินสอ) จดโน้ตพร้อมแนบภาพ (ปุ่มโน้ต) ลบ และบันทึกทั้งหมดเป็น .zip ภาพเก็บไว้ในเบราว์เซอร์ ปิดแล้วเปิดใหม่ยังอยู่
@@ -41,7 +51,7 @@ python serve.py
 
 ## ใช้ออฟไลน์ (ไม่บังคับ)
 ดาวน์โหลดโฟลเดอร์ `data` ของ EmulatorJS (https://github.com/EmulatorJS/EmulatorJS) มาวางที่ `emulatorjs/data/` เว็บจะใช้ตัวนี้ก่อนอัตโนมัติ
-core ของ PSP ต้องใช้ `python serve.py --isolate` ร่วมกับโหมดออฟไลน์นี้
+
 
 ## เพิ่มเครื่องใหม่
 - เครื่องที่เล่นในเว็บ: แก้ `js/systems.js` เพิ่มหนึ่งบรรทัด (ชื่อ core, นามสกุลไฟล์, สีไอคอน)
