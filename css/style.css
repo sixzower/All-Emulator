@@ -41,16 +41,18 @@ svg.fill,svg .solid{fill:currentColor;stroke:none}
 
 /* ---------- หน้าคลัง ---------- */
 .home{max-width:940px;margin:0 auto;padding:0 20px 56px}
-.home-bar{position:sticky;top:0;z-index:20;margin:0 -20px;padding:max(10px,env(safe-area-inset-top)) 20px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-width:0 0 .5px;
+.home-bar{position:sticky;top:0;z-index:20;margin:0 -20px calc(-48px - env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) 20px 0;height:calc(48px + env(safe-area-inset-top,0px));display:flex;align-items:center;justify-content:space-between;gap:12px;border-width:0 0 .5px;pointer-events:none;
   background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;border-color:transparent;transition:background .25s,border-color .25s}
-.home-bar.scrolled{background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(28px);backdrop-filter:saturate(180%) blur(28px);border-color:var(--hair)}
+.home-bar.scrolled{pointer-events:auto;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(28px);backdrop-filter:saturate(180%) blur(28px);border-color:var(--hair)}
 .bar-title{font-weight:600;font-size:17px;opacity:0;transform:translateY(4px);transition:opacity .25s,transform .25s}
 .home-bar.scrolled .bar-title{opacity:1;transform:none}
 .theme-btn{margin-left:auto;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--fill);color:var(--fg);transition:transform .15s,background .2s}
+.home-bar .theme-btn{opacity:0;pointer-events:none;transition:opacity .25s,transform .15s}
+.home-bar.scrolled .theme-btn{opacity:1;pointer-events:auto}
 .theme-btn:active{transform:scale(.88)}
 .theme-btn svg{width:17px;height:17px;stroke-width:1.9}
-.home-head{padding:6px 0 20px}
-.logo-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.home-head{padding:calc(14px + env(safe-area-inset-top,0px)) 0 20px}
+.logo-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;min-height:36px}
 .logo{width:34px;height:34px;border-radius:22.37%;display:grid;place-items:center;background:linear-gradient(160deg,#3a3a3f,#0e0e10);color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.25),inset 0 .5px 0 rgba(255,255,255,.3)}
 .logo svg{width:21px;height:21px}
 .eyebrow{font-size:13px;font-weight:600;color:var(--mut);letter-spacing:.02em}
