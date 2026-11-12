@@ -132,6 +132,7 @@
   }
 
   function pickFile(sys) {
+    if (DEMO) return launch(sys, new File(['x'], 'ตัวอย่างเกม ' + sys.short + ' (แปลไทย).' + sys.ext[0]));   // โหมดตัวอย่าง: ไม่ต้องเลือกไฟล์
     var inp = document.createElement('input');       // ต้องสร้างและคลิกในจังหวะที่ผู้ใช้กด
     inp.type = 'file';
     inp.accept = sys.ext.concat(['zip', '7z']).map(function (e) { return '.' + e; }).join(',');
@@ -152,7 +153,11 @@
     loadNotes(); renderSlots(); loadShots();
     if (sys.heavy) toast('เครื่องนี้ใช้แรงเครื่อง ถ้ากระตุกลองปิดแท็บอื่นก่อน');
 
-    if (DEMO) return demoGame();
+    if (DEMO) {   // ล้างสถานะของเกมก่อนหน้า เพราะไม่ได้รีโหลดหน้า
+      shots.forEach(function (x) { URL.revokeObjectURL(x.url); }); shots = []; shotSeq = 0; attachId = null;
+      $('#ejs').innerHTML = ''; $('#playBody').classList.remove('nopanel'); showTab('notes'); renderShots();
+      return demoGame();
+    }
     probe(LOCAL + 'loader.js').then(function (hasLocal) {
       var base = hasLocal ? LOCAL : CDN;
       window.EJS_player = '#ejs';
@@ -177,7 +182,10 @@
   function emu() { return window.EJS_emulator; }
 
   /* ---------- ปุ่มบนแถบ ---------- */
-  $('#btnBack').onclick = function () { location.reload(); };   // รีโหลดเพื่อคืนหน่วยความจำให้หมด
+  $('#btnBack').onclick = function () {
+    if (DEMO) { $('#play').hidden = true; $('#home').hidden = false; window.scrollTo(0, 0); return; }   // โหมดตัวอย่าง: กลับหน้าคลังโดยไม่รีโหลด
+    location.reload();
+  };   // รีโหลดเพื่อคืนหน่วยความจำให้หมด
   $('#btnPanel').onclick = function () { $('#playBody').classList.toggle('nopanel'); };
   $('#btnFull').onclick = function () {
     var el = $('.screen');
@@ -658,5 +666,4 @@
   function onScroll() { $('#homeBar').classList.toggle('scrolled', window.scrollY > 70); }
   window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
 
-  if (DEMO) launch(SYSTEMS.filter(function (x) { return x.id === 'gba'; })[0], new File(['x'], 'ตำนานดาบสุดท้าย (แปลไทย).gba'));
 })();
