@@ -60,6 +60,7 @@
     var r = ic.getBoundingClientRect(), v = document.createElement('div'); v.className = 'veil';
     v.style.cssText = full ? 'left:0;top:0;width:100vw;height:100vh;border-radius:0;' : 'left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;border-radius:22.37%;';
     v.style.background = getComputedStyle(ic).backgroundImage;
+    v.innerHTML = ic.innerHTML;   // ใส่รูปเครื่องเกมและป้ายชื่อไปด้วย ขยาย/หดไปพร้อมกัน
     document.body.appendChild(v); return v;
   }
   function openTransition(el, swap) {
@@ -735,26 +736,6 @@
   });
   if (darkMQ.addEventListener) darkMQ.addEventListener('change', function () { if (theme === 'auto') applyTheme('auto'); });
   applyTheme(theme);
-
-  /* ---------- สีเน้น ---------- */
-  var ACCENTS = [['graphite', 'กราไฟต์', null], ['orange', 'ส้ม', '#ff9500'], ['green', 'เขียว', '#34c759'], ['purple', 'ม่วง', '#af52de'], ['pink', 'ชมพู', '#ff2d55'], ['teal', 'ฟ้าอมเขียว', '#30b0c7'], ['blue', 'น้ำเงิน', '#0a84ff']];
-  var accent = document.documentElement.getAttribute('data-accent') || 'graphite';
-  function applyAccent(id) {
-    accent = id;
-    if (id === 'graphite') document.documentElement.removeAttribute('data-accent'); else document.documentElement.setAttribute('data-accent', id);
-    try { if (id === 'graphite') localStorage.removeItem('ae-accent'); else localStorage.setItem('ae-accent', id); } catch (e) {}
-    renderAccent();
-  }
-  function renderAccent() {
-    $('#accList').innerHTML = ACCENTS.map(function (a) {
-      return '<button class="swatch-opt" role="radio" aria-checked="' + (a[0] === accent) + '" data-a="' + a[0] + '"><span class="dotc' + (a[2] ? '' : ' gr') + '"' + (a[2] ? ' style="--c:' + a[2] + '"' : '') + '><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>' + a[1] + '</button>';
-    }).join('');
-    $('#accList').querySelectorAll('button').forEach(function (b) { b.onclick = function () { applyAccent(b.dataset.a); }; });
-  }
-  $('#btnAccent').onclick = function () { renderAccent(); $('#accWrap').hidden = false; $('#accClose').focus(); };
-  $('#accClose').onclick = function () { $('#accWrap').hidden = true; };
-  $('#accWrap').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('#accWrap').hidden = true; });
 
   /* ---------- ค้นหาเครื่อง + แถบบนที่โปร่งเมื่อเลื่อน ---------- */
   $('#sysCount').textContent = SYSTEMS.length;
