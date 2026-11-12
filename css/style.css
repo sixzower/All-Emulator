@@ -46,9 +46,9 @@ svg.fill,svg .solid{fill:currentColor;stroke:none}
 .home-bar.scrolled{background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(28px);backdrop-filter:saturate(180%) blur(28px);border-color:var(--hair)}
 .bar-title{font-weight:600;font-size:17px;opacity:0;transform:translateY(4px);transition:opacity .25s,transform .25s}
 .home-bar.scrolled .bar-title{opacity:1;transform:none}
-.theme-btn{margin-left:auto;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--card);color:var(--fg);box-shadow:var(--shadow),0 0 0 .5px var(--hair);transition:transform .15s}
-.theme-btn:active{transform:scale(.9)}
-.theme-btn svg{width:20px;height:20px}
+.theme-btn{margin-left:auto;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--fill);color:var(--fg);transition:transform .15s,background .2s}
+.theme-btn:active{transform:scale(.88)}
+.theme-btn svg{width:17px;height:17px;stroke-width:1.9}
 .home-head{padding:6px 0 20px}
 .logo-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
 .logo{width:34px;height:34px;border-radius:22.37%;display:grid;place-items:center;background:linear-gradient(160deg,#3a3a3f,#0e0e10);color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.25),inset 0 .5px 0 rgba(255,255,255,.3)}

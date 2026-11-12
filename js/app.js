@@ -446,8 +446,8 @@
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('#ctlWrap').hidden = true; });
 
   /* ---------- ธีม สว่าง / มืด (ปุ่มเดียว แตะสลับ · กดค้างเพื่อกลับไปตามระบบ) ---------- */
-  var ICON_SUN = '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>';
-  var ICON_MOON = '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>';
+  var ICON_SUN = '<circle cx="12" cy="12" r="3.6"/><path d="M12 3.5v1.8M12 18.7v1.8M3.5 12h1.8M18.7 12h1.8M6 6l1.3 1.3M16.7 16.7L18 18M6 18l1.3-1.3M16.7 7.3L18 6"/>';
+  var ICON_MOON = '<path d="M20.5 13.2A8.5 8.5 0 1 1 10.8 3.5a6.6 6.6 0 0 0 9.7 9.7z"/>';
   var darkMQ = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : { matches: false };
   var theme = 'auto';
   try { var tsv = localStorage.getItem('ae-theme'); if (tsv === 'light' || tsv === 'dark') theme = tsv; } catch (e) {}
