@@ -713,6 +713,15 @@
   $('#biosWrap').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('#biosWrap').hidden = true; });
 
+  /* ---------- ปุ่มลัด: กด Shift = แคปจอ ---------- */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Shift' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+    if ($('#play').hidden) return;
+    if (!$('#lb').hidden || !$('#sheetWrap').hidden || !$('#ctlWrap').hidden || !$('#biosWrap').hidden) return;
+    var t = e.target; if (t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;   // กำลังพิมพ์โน้ต: Shift ใช้พิมพ์ตัวอักษรตามปกติ
+    e.preventDefault(); $('#btnShot').click();
+  });
+
   /* ---------- ปุ่มควบคุมของเครื่อง ---------- */
   var KEYS_DEF = { 0: 'X', 1: 'S', 2: 'V', 3: 'Enter', 4: '↑', 5: '↓', 6: '←', 7: '→', 8: 'Z', 9: 'A', 10: 'Q', 11: 'E', 12: 'Tab', 13: 'R' };   // ค่าตั้งต้นจริงของ EmulatorJS 4.2 (ตรวจจากซอร์สโค้ด)
   var KC = { 8: 'Backspace', 9: 'Tab', 13: 'Enter', 16: 'Shift', 17: 'Ctrl', 18: 'Alt', 27: 'Esc', 32: 'Space', 37: '←', 38: '↑', 39: '→', 40: '↓', 186: ';', 188: ',', 190: '.', 191: '/' };
@@ -737,7 +746,7 @@
     if (pad.approx) notes.unshift('ชื่อปุ่มตรงกับเครื่องจริง แต่คีย์ที่ตรงกันอาจต่างตามเกม ถ้าไม่ตรงให้ดูในเมนูควบคุมของอีมู');
     notes.push('เสียบจอยแล้วใช้ได้ทันที · เปลี่ยนปุ่มได้ที่ไอคอนจอยในแถบควบคุมของอีมู (ใต้จอเกม)');
     $('#ctlTitle').textContent = 'ปุ่มควบคุม · ' + sys.name;
-    $('#ctlBody').innerHTML = '<ul class="ctl-list">' + rows + '</ul><div class="ctl-note">' + notes.map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('') + '</div>';
+    $('#ctlBody').innerHTML = '<ul class="ctl-list">' + rows + '</ul><div class="ctl-note">' + notes.map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('') + '</div><p class="ctl-sub">ปุ่มลัดของเว็บ</p><ul class="ctl-list"><li><span class="lbl">แคปจอ</span><span class="keys"><kbd>Shift</kbd></span></li></ul>';
     $('#ctlWrap').hidden = false; $('#ctlClose').focus();
   }
   $('#btnCtl').onclick = openControls;
