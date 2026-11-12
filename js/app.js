@@ -94,13 +94,13 @@
     var html = '';
     GROUPS.forEach(function (g) {
       var items = SYSTEMS.filter(function (s) { return s.group === g.id; });
-      html += '<section class="group"><h2>' + g.title + '</h2><div class="grid card">';
+      html += '<section class="group"><h2><span>' + g.title + '</span><em>' + items.length + ' เครื่อง</em></h2><div class="grid card">';
       items.forEach(function (s) {
         html += '<button class="app" data-id="' + s.id + '" data-q="' + (s.name + ' ' + s.short).toLowerCase() + '">' + icon(s) + '<span class="lbl">' + s.name + '</span>' + (s.heavy ? '<span class="sub">ใช้แรงเครื่อง</span>' : '') + '</button>';
       });
       html += '</div></section>';
     });
-    html += '<section class="group native-group"><h2>เปิดด้วยโปรแกรมในเครื่อง</h2><div class="grid card">';
+    html += '<section class="group native-group"><h2><span>เปิดด้วยโปรแกรมในเครื่อง</span><em>' + NATIVE.length + ' เครื่อง</em></h2><div class="grid card">';
     NATIVE.forEach(function (n) {
       html += '<button class="app" data-native="' + n.id + '" data-q="' + (n.name + ' ' + n.short + ' ' + n.app).toLowerCase() + '">' + icon(n) + '<span class="lbl">' + n.name + '</span><span class="sub">หน้าต่างแยก · ' + n.app + '</span></button>';
     });
