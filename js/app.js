@@ -275,15 +275,37 @@
     try { fast = !fast; emu().gameManager.toggleFastForward(fast ? 1 : 0); $('#btnFast').classList.toggle('on', fast); }
     catch (e) { fast = false; toast('ใช้ปุ่มเร่งความเร็วในแถบควบคุมของอีมูแทน'); }
   };
+  /* เสียงชัตเตอร์สังเคราะห์ด้วย WebAudio (ไม่ต้องมีไฟล์เสียง) */
+  var actx = null;
+  function audioWarm() {   // เรียกตอนผู้ใช้กดปุ่ม เพราะเบราว์เซอร์อนุญาตเสียงหลังมีการกดเท่านั้น
+    try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) {}
+  }
+  function shutterSound() {
+    if (!actx) return;
+    try {
+      var t = actx.currentTime;
+      var click = function (at, freq, dur, vol) {
+        var n = Math.floor(actx.sampleRate * dur), buf = actx.createBuffer(1, n, actx.sampleRate), d = buf.getChannelData(0);
+        for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
+        var src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+        src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 1.2; g.gain.value = vol;
+        src.connect(f); f.connect(g); g.connect(actx.destination); src.start(at);
+      };
+      click(t, 3200, 0.05, 0.9); click(t + 0.075, 1800, 0.09, 0.7);   // ชัตเตอร์เปิด-ปิด
+    } catch (e) {}
+  }
   $('#btnShot').onclick = function () {
     var done = function (blob) {
       if (!blob) return toast('แคปไม่สำเร็จ ลองใช้ปุ่มแคปในแถบของอีมู');
+      shutterSound();
+      showTab('shots');   // อยู่แท็บโน้ตหรือเซฟด่วน: เด้งไปแท็บภาพแคปให้เห็นภาพที่เพิ่งแคป
       addShot(blob); toast('เก็บภาพแล้ว (แท็บ "ภาพแคป")');
     };
     try {
       var r = emu().gameManager.screenshot();
       Promise.resolve(r).then(function (d) { done(d instanceof Blob ? d : new Blob([d], { type: 'image/png' })); }, function () { canvasShot(done); });
     } catch (e) { canvasShot(done); }
+    audioWarm();   // เปิดระบบเสียงหลังเริ่มจับภาพแล้ว เพื่อไม่ให้ภาพช้ากว่าที่กด (ยังอยู่ในจังหวะที่ผู้ใช้กดปุ่ม)
   };
   function canvasShot(cb) { var c = document.querySelector('#ejs canvas'); c ? c.toBlob(cb, 'image/png') : cb(null); }
   function baseName() { return current.file.name.replace(/\.[^.]+$/, ''); }
