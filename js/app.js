@@ -100,7 +100,7 @@
       });
       html += '</div></section>';
     });
-    html += '<section class="group"><h2>เปิดด้วยโปรแกรมในเครื่อง</h2><div class="grid card">';
+    html += '<section class="group native-group"><h2>เปิดด้วยโปรแกรมในเครื่อง</h2><div class="grid card">';
     NATIVE.forEach(function (n) {
       html += '<button class="app" data-native="' + n.id + '" data-q="' + (n.name + ' ' + n.short + ' ' + n.app).toLowerCase() + '">' + icon(n) + '<span class="lbl">' + n.name + '</span><span class="sub">หน้าต่างแยก · ' + n.app + '</span></button>';
     });
@@ -139,7 +139,7 @@
     opt = opt || {}; opt.headers = Object.assign({ 'X-AE': '1' }, opt.headers || {});
     return fetch(path, opt).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.status); return j; }); });
   }
-  function loadNativeStatus() { return api('/api/native').then(function (j) { nativeStatus = j; return j; }, function () { nativeStatus = null; return null; }); }
+  function loadNativeStatus() { return api('api/native').then(function (j) { nativeStatus = j; return j; }, function () { nativeStatus = null; return null; }); }
   function showHome() { $('#native').hidden = true; $('#home').hidden = false; window.scrollTo(0, 0); closeTransition(lastIcon); }
   $('#nBack').onclick = showHome;
   function sizeText(b) { return b >= 1073741824 ? (b / 1073741824).toFixed(1) + ' GB' : Math.max(1, Math.round(b / 1048576)) + ' MB'; }
@@ -162,7 +162,7 @@
         if (!e.games_ok) li += '<li>ไม่พบโฟลเดอร์เกมที่ <code>' + esc(e.games) + '</code><br><small>แก้ค่า <code>games</code> เป็นโฟลเดอร์ที่เก็บไฟล์เกม</small></li>';
         return stateCard(stateHtml('ตั้งค่าอีกนิดเดียว', 'แก้ในไฟล์ <code>emulators.json</code> แล้วกดกลับมาที่หน้านี้อีกครั้ง (ไม่ต้องรีสตาร์ท)') + '<ul class="steps">' + li + '</ul>');
       }
-      return api('/api/native/' + n.id + '/games').then(function (j) {
+      return api('api/native/' + n.id + '/games').then(function (j) {
         nGames = j.games; stateCard(null); $('#nSearchWrap').hidden = false; renderGames();
         if (!nGames.length) stateCard(stateHtml('ไม่พบไฟล์เกม', 'ในโฟลเดอร์ <code>' + esc(e.games) + '</code> ยังไม่มีไฟล์ที่เป็นนามสกุลที่รองรับ'));
       }, function (err) { stateCard(stateHtml('อ่านรายการเกมไม่ได้', esc(err.message))); });
@@ -183,7 +183,7 @@
   $('#nSearch').addEventListener('input', renderGames);
   function launchNative(path, btn) {
     btn.disabled = true; toast('กำลังเปิด ' + nCur.app + '…');
-    api('/api/native/' + nCur.id + '/launch', { method: 'POST', body: JSON.stringify({ path: path }) })
+    api('api/native/' + nCur.id + '/launch', { method: 'POST', body: JSON.stringify({ path: path }) })
       .then(function () { toast('สั่งเปิด ' + nCur.app + ' แล้ว หน้าต่างอีมูอาจใช้เวลาโหลดสักครู่'); },
             function (err) { toast('เปิดไม่สำเร็จ: ' + err.message); })
       .then(function () { setTimeout(function () { btn.disabled = false; }, 1500); });
@@ -194,7 +194,7 @@
       { path: 'RPG/ดินแดนมังกรฟ้า v0.8.cia', name: 'ดินแดนมังกรฟ้า v0.8.cia', size: 734003200 },
       { path: 'RPG/เมืองใต้เงา.cci', name: 'เมืองใต้เงา.cci', size: 2147483648 } ] };
     if (/launch$/.test(path)) return { ok: true };
-    if (/\/api\/bios/.test(path)) return { psx: { name: 'scph5501.bin', size: 524288 } };
+    if (/api\/bios/.test(path)) return { psx: { name: 'scph5501.bin', size: 524288 } };
     var o = {}; NATIVE.forEach(function (n) { o[n.id] = { exe: 'C:\\Emulators\\' + n.app, games: 'C:\\Games\\' + n.short, exe_ok: n.id === '3ds', games_ok: n.id === '3ds' }; });
     o.psp = { exe_ok: true, games_ok: true }; return o;
   }
@@ -221,7 +221,8 @@
     loadNotes(); renderSlots(); loadShots();
     var ld = $('#loading'); ld.hidden = false; ld.classList.remove('failed');
     $('#loadName').textContent = $('#gameTitle').textContent; $('#loadMsg').textContent = 'กำลังเตรียมอีมูเลเตอร์…';
-    if (sys.heavy) toast('เครื่องนี้ใช้แรงเครื่อง ถ้ากระตุกลองปิดแท็บอื่นก่อน', 'info');
+    if (sys.threads && !window.crossOriginIsolated && !DEMO) toast('PSP ในเว็บอาจเปิดไม่ติดในโหมดนี้ แนะนำ PPSSPP หรือรันในเครื่องด้วย python serve.py --isolate', 'warn');
+    else if (sys.heavy) toast('เครื่องนี้ใช้แรงเครื่อง ถ้ากระตุกลองปิดแท็บอื่นก่อน', 'info');
 
     if (DEMO) {   // ล้างสถานะของเกมก่อนหน้า เพราะไม่ได้รีโหลดหน้า
       shots.forEach(function (x) { URL.revokeObjectURL(x.url); }); shots = []; shotSeq = 0; attachId = null;
@@ -635,7 +636,11 @@
   }
 
   buildHome();
-  loadNativeStatus();
+  loadNativeStatus().then(function (st) {
+    if (st || DEMO) return;
+    var g = document.querySelector('.native-group'); if (g) g.hidden = true;   // ไม่มี serve.py (เช่นเปิดจาก GitHub Pages): ซ่อนฟีเจอร์ที่ต้องใช้เซิร์ฟเวอร์ในเครื่อง
+    $('#btnBios').hidden = true; $('#footLocal').hidden = true; $('#footWeb').hidden = false;
+  });
 
   /* ---------- BIOS (เก็บเป็นไฟล์ในโฟลเดอร์ bios/ ผ่าน serve.py) ---------- */
   function biosPath(id, info) { return 'bios/' + id + '/' + encodeURIComponent(info.name); }
@@ -643,7 +648,7 @@
     var inp = document.createElement('input'); inp.type = 'file';
     inp.onchange = function () {
       var f = inp.files[0]; if (!f) return;
-      api('/api/bios/' + id + '?name=' + encodeURIComponent(f.name), { method: 'POST', body: f })
+      api('api/bios/' + id + '?name=' + encodeURIComponent(f.name), { method: 'POST', body: f })
         .then(function (j) { toast('บันทึก BIOS แล้ว'); done(j); }, function (e) { toast('บันทึก BIOS ไม่สำเร็จ: ' + e.message); });
     };
     inp.click();
@@ -651,7 +656,7 @@
   function ensureBios(sys, go) {
     var b = BIOS[sys.id];
     if (!b || DEMO) return go(null);
-    api('/api/bios').then(function (info) {
+    api('api/bios').then(function (info) {
       if (info[sys.id]) return go(biosPath(sys.id, info[sys.id]));
       openSheet(b.optional ? 'ใส่ BIOS ไหม? (ไม่บังคับ)' : 'เครื่องนี้ต้องใช้ BIOS',
         (b.optional ? 'เล่นได้โดยไม่ใช้ BIOS แต่บางเกมจะทำงานได้ดีกว่าถ้ามี' : 'เลือกไฟล์ BIOS ของ ' + b.label + ' ที่คุณมี') + ' (' + b.hint + ') ไฟล์จะถูกเก็บไว้ในโฟลเดอร์ bios/ ในเครื่องคุณ ครั้งหน้าไม่ต้องเลือกซ้ำ',
@@ -662,7 +667,7 @@
   function openBiosMgr() {
     $('#biosWrap').hidden = false; $('#biosClose').focus();
     var ul = $('#biosList'); ul.innerHTML = '<li><span class="nokey">กำลังตรวจสอบ…</span></li>';
-    api('/api/bios').then(function (info) {
+    api('api/bios').then(function (info) {
       ul.innerHTML = Object.keys(BIOS).map(function (id) {
         var i = info[id], b = BIOS[id];
         return '<li><span class="lbl">' + esc(b.label) + '<small>' + (i ? esc(i.name) + ' · ' + sizeText(i.size) : (b.optional ? 'ยังไม่มี (ไม่บังคับ)' : 'ยังไม่มี (จำเป็น)')) + '</small></span><span class="b-act"><button data-a="pick" data-id="' + id + '">' + (i ? 'เปลี่ยน' : 'เลือกไฟล์') + '</button>' + (i ? '<button class="danger" data-a="del" data-id="' + id + '">ลบ</button>' : '') + '</span></li>';
@@ -670,7 +675,7 @@
       ul.querySelectorAll('button').forEach(function (bt) {
         bt.onclick = function () {
           if (bt.dataset.a === 'pick') pickBios(bt.dataset.id, openBiosMgr);
-          else api('/api/bios/' + bt.dataset.id, { method: 'DELETE' }).then(function () { toast('ลบ BIOS แล้ว'); openBiosMgr(); }, function (e) { toast('ลบไม่สำเร็จ: ' + e.message); });
+          else api('api/bios/' + bt.dataset.id, { method: 'DELETE' }).then(function () { toast('ลบ BIOS แล้ว'); openBiosMgr(); }, function (e) { toast('ลบไม่สำเร็จ: ' + e.message); });
         };
       });
     }, function () { ul.innerHTML = '<li><span class="nokey">ต้องเปิดเว็บผ่าน python serve.py ถึงจะจัดการ BIOS ได้</span></li>'; });

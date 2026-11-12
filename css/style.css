@@ -55,7 +55,7 @@ svg.fill,svg .solid{fill:currentColor;stroke:none}
 .home-head{padding:calc(14px + env(safe-area-inset-top,0px)) 0 20px}
 .logo-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;min-height:36px}
 .logo{width:34px;height:34px;border-radius:22.37%;display:grid;place-items:center;background:linear-gradient(160deg,#3a3a3f,#0e0e10);color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.25),inset 0 .5px 0 rgba(255,255,255,.3)}
-.logo svg{width:21px;height:21px}
+.logo svg{width:30px;height:30px;stroke:none}
 .eyebrow{font-size:13px;font-weight:600;color:var(--mut);letter-spacing:.02em}
 .home-head h1{font-size:42px;line-height:1.1;margin:0 0 4px;font-weight:700;letter-spacing:-.025em}
 .home-head p{margin:0 0 16px;color:var(--mut);font-size:17px}
@@ -304,3 +304,8 @@ kbd{font-family:inherit;font-size:13px;font-weight:600;min-width:30px;text-align
 .veil em{position:absolute;left:0;right:0;bottom:8.3cqh;z-index:2;text-align:center;font-style:normal;font-weight:700;color:#fff;font-size:13.9cqh;line-height:1.2;letter-spacing:.05em;text-shadow:0 .2cqh .5cqh rgba(0,0,0,.5)}
 .entering{position:fixed;inset:0;visibility:hidden;overflow:auto}
 .returning #home{opacity:0}
+
+.foot code{font-size:12px;background:var(--fill);border-radius:6px;padding:1px 6px}
+.foot a{color:var(--fg);font-weight:600}
+
+.lab{color:var(--mut);font-weight:inherit}
