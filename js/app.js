@@ -307,6 +307,12 @@
     }).join('') : '<li class="hint">ยังไม่มีโน้ต พิมพ์จุดที่เจอปัญหาแล้วกด "เพิ่ม"</li>';
     $('#noteList').querySelectorAll('.x').forEach(function (b) { b.onclick = function () { notes.splice(b.dataset.i, 1); saveNotes(); renderNotes(); }; });
   }
+  document.querySelectorAll('.chip').forEach(function (c) {
+    c.onclick = function () {
+      $('#noteTag').value = c.dataset.tag;
+      document.querySelectorAll('.chip').forEach(function (x) { var on = x === c; x.classList.toggle('on', on); x.setAttribute('aria-checked', on ? 'true' : 'false'); });
+    };
+  });
   $('#noteForm').onsubmit = function (e) {
     e.preventDefault();
     var t = $('#noteText').value.trim(); if (!t) return;

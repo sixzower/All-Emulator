@@ -84,13 +84,8 @@
 
       <div class="tab" id="tab-notes">
         <form id="noteForm" class="note-form">
-          <select id="noteTag" aria-label="ประเภท">
-            <option value="ฟอนต์">ฟอนต์</option>
-            <option value="ข้อความล้น">ข้อความล้น</option>
-            <option value="คำผิด">คำผิด</option>
-            <option value="สระ/วรรณยุกต์">สระ/วรรณยุกต์</option>
-            <option value="ผ่าน">ผ่าน</option>
-          </select>
+          <input type="hidden" id="noteTag" value="ฟอนต์">
+          <div class="chips" role="radiogroup" aria-label="ประเภทปัญหา"><button type="button" class="chip on" data-tag="ฟอนต์" role="radio" aria-checked="true">ฟอนต์</button><button type="button" class="chip" data-tag="ข้อความล้น" role="radio" aria-checked="false">ข้อความล้น</button><button type="button" class="chip" data-tag="คำผิด" role="radio" aria-checked="false">คำผิด</button><button type="button" class="chip" data-tag="สระ/วรรณยุกต์" role="radio" aria-checked="false">สระ/วรรณยุกต์</button><button type="button" class="chip" data-tag="ผ่าน" role="radio" aria-checked="false">ผ่าน</button></div>
           <input id="noteText" placeholder="เช่น ร้านค้า: สระบนซ้อนบรรทัด" autocomplete="off">
           <button class="pill tint">เพิ่ม</button>
         </form>
