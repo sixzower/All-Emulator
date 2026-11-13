@@ -123,7 +123,7 @@
       b.addEventListener('dragover', function (e) { e.preventDefault(); b.classList.add('drop'); });
       b.addEventListener('dragleave', function () { b.classList.remove('drop'); });
       b.addEventListener('drop', function (e) {
-        e.preventDefault(); b.classList.remove('drop'); lastIcon = b;
+        e.preventDefault(); e.__iconHandled = true; b.classList.remove('drop'); lastIcon = b;   // ลากวางบนไอคอน = บังคับเครื่องนั้น
         if (e.dataTransfer.files[0]) launch(sys, e.dataTransfer.files[0]);
       });
     });
@@ -763,6 +763,147 @@
   $('#biosClose').onclick = function () { $('#biosWrap').hidden = true; };
   $('#biosWrap').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('#biosWrap').hidden = true; });
+
+  /* ---------- ลากไฟล์เกมมาวางตรงไหนของหน้าก็ได้: เดาเครื่องจากนามสกุล + อ่านหัวไฟล์ ---------- */
+  var EXT_MAP = {};   // นามสกุล -> รายชื่อเครื่องที่ใช้นามสกุลนี้
+  SYSTEMS.forEach(function (sy) { sy.ext.forEach(function (x) { (EXT_MAP[x] = EXT_MAP[x] || []).push(sy.id); }); });
+  var NATIVE_EXT = { '3ds': '3ds', cci: '3ds', cxi: '3ds', cia: '3ds', '3dsx': '3ds', nsp: 'ns', xci: 'ns', rvz: 'gc', wbfs: 'gc', gcm: 'gc', ciso: 'gc', wad: 'gc', cdi: 'dc', gdi: 'dc' };
+  function fext(name) { var m = /\.([^.\/]+)$/.exec(name); return m ? m[1].toLowerCase() : ''; }
+  function sysById(id) { return SYSTEMS.filter(function (x) { return x.id === id; })[0]; }
+  function nativeById(id) { return NATIVE.filter(function (x) { return x.id === id; })[0]; }
+  function ascii(u, off, len) { var t = ''; for (var i = off; i < off + len && i < u.length; i++) t += String.fromCharCode(u[i]); return t; }
+
+  // อ่านหัวไฟล์ดูข้อความประจำแผ่น/ตลับ (ไม่อ่านทั้งไฟล์ จึงเบาแม้เป็นไฟล์ GB)
+  function sniff(file, e) {
+    return file.slice(0, 0x9400).arrayBuffer().then(function (b) {
+      var u = new Uint8Array(b), out = { sys: [], native: null };
+      var big = file.size > 900 * 1048576;
+      if (ascii(u, 0, 15) === 'SEGA SEGASATURN' || ascii(u, 16, 15) === 'SEGA SEGASATURN') out.sys.push('sat');
+      else if (ascii(u, 0, 14) === 'SEGADISCSYSTEM' || ascii(u, 16, 14) === 'SEGADISCSYSTEM') out.sys.push('scd');
+      else if (ascii(u, 0x8008, 8) === 'PSP GAME') out.sys.push('psp');
+      else if (ascii(u, 0x8008, 11) === 'PLAYSTATION' || ascii(u, 0x9320, 11) === 'PLAYSTATION') { if (big) out.native = 'ps2'; else out.sys.push('psx'); }
+      else if (u[0x1C] === 0xC2 && u[0x1D] === 0x33 && u[0x1E] === 0x9F && u[0x1F] === 0x3D) out.native = 'gc';          // GameCube
+      else if (u[0x18] === 0x5D && u[0x19] === 0x1C && u[0x1A] === 0x9E && u[0x1B] === 0xA3) out.native = 'gc';          // Wii
+      else if (ascii(u, 0x100, 4) === 'NCSD') out.native = '3ds';
+      else if (ascii(u, 0x100, 4) === 'SEGA') out.sys.push('md');                                                          // Mega Drive / Genesis
+      else if (e === 'bin' && file.size <= 65536) out.sys.push('a26');                                                     // ตลับ Atari เล็กมาก
+      return out;
+    }).catch(function () { return { sys: [], native: null }; });
+  }
+  // ดูรายชื่อไฟล์ในไฟล์ zip (อ่านเฉพาะสารบัญท้ายไฟล์) เพื่อรู้ว่าข้างในเป็นเกมเครื่องอะไร
+  function zipNames(file) {
+    var n = Math.min(file.size, 70000);
+    return file.slice(file.size - n).arrayBuffer().then(function (buf) {
+      var v = new DataView(buf), off = -1, size = 0;
+      for (var i = buf.byteLength - 22; i >= 0; i--) {
+        if (v.getUint32(i, true) === 0x06054b50) { size = v.getUint32(i + 12, true); off = v.getUint32(i + 16, true); break; }
+      }
+      if (off < 0 || off + size > file.size) return [];
+      return file.slice(off, off + size).arrayBuffer().then(function (cb) {
+        var d = new DataView(cb), u8 = new Uint8Array(cb), p = 0, names = [], dec = new TextDecoder();
+        while (p + 46 <= cb.byteLength && d.getUint32(p, true) === 0x02014b50 && names.length < 6000) {
+          var nl = d.getUint16(p + 28, true), el = d.getUint16(p + 30, true), cl = d.getUint16(p + 32, true);
+          names.push(dec.decode(u8.subarray(p + 46, p + 46 + nl))); p += 46 + nl + el + cl;
+        }
+        return names;
+      });
+    }).catch(function () { return []; });
+  }
+  function detectInZip(names) {
+    var uniq = {}, amb = [], nat = null;
+    names.forEach(function (nm) {
+      if (/\/$/.test(nm)) return;
+      var x = fext(nm); if (x === 'zip') return;
+      if (NATIVE_EXT[x]) { nat = NATIVE_EXT[x]; return; }
+      var c = EXT_MAP[x]; if (!c) return;
+      if (c.length === 1) uniq[c[0]] = 1; else amb.push(c);
+    });
+    var u = Object.keys(uniq);
+    if (nat && !u.length) return { native: nat, ids: [] };
+    if (u.length === 1) return { ids: u, sure: true };
+    if (u.length > 1) return { ids: u, sure: false };
+    if (amb.length) {   // เช่น .cue + .bin: ใช้เครื่องที่ทุกนามสกุลตรงกัน
+      var inter = amb[0].filter(function (id) { return amb.every(function (l) { return l.indexOf(id) > -1; }); });
+      return { ids: inter.length ? inter : amb[0], sure: false };
+    }
+    return { ids: ['arc'], sure: false };   // ไม่มีนามสกุลที่รู้จักเลย: น่าจะเป็นรอมอาร์เคด (ชุดไฟล์ MAME/FBNeo)
+  }
+  function detectSystem(file) {
+    var e = fext(file.name);
+    if (NATIVE_EXT[e]) return Promise.resolve({ native: NATIVE_EXT[e], ids: [] });
+    if (e === 'zip') return zipNames(file).then(detectInZip);
+    var cands = (EXT_MAP[e] || []).slice();
+    if (!cands.length) return Promise.resolve({ ids: [], unknown: true });
+    if (cands.length === 1) return Promise.resolve({ ids: cands, sure: true });
+    return sniff(file, e).then(function (r) {
+      if (r.native) return { native: r.native, ids: [] };
+      var ids = r.sys.filter(function (id) { return cands.indexOf(id) > -1; });
+      if (ids.length === 1) return { ids: ids, sure: true };
+      return { ids: cands, sure: false };
+    });
+  }
+
+  function openAs(sys, file, auto) {
+    lastIcon = document.querySelector('.app[data-id="' + sys.id + '"]');
+    if (auto) toast('ตรวจพบ: ' + sys.name, 'ok');
+    launch(sys, file);
+  }
+  function chooseSystem(file, ids, why) {
+    var list = ids && ids.length ? ids.map(sysById).filter(Boolean) : SYSTEMS.slice();
+    function render(items) {
+      $('#pickGrid').innerHTML = items.map(function (sy) { return '<button data-id="' + sy.id + '">' + icon(sy) + '<span>' + esc(sy.name) + '</span></button>'; }).join('');
+      $('#pickGrid').querySelectorAll('button').forEach(function (b) { b.onclick = function () { $('#pickWrap').hidden = true; openAs(sysById(b.dataset.id), file, false); }; });
+    }
+    $('#pickSub').textContent = file.name + ' · ' + why;
+    render(list);
+    $('#pickAll').hidden = list.length === SYSTEMS.length;
+    $('#pickAll').onclick = function () { render(SYSTEMS); $('#pickAll').hidden = true; };
+    $('#pickWrap').hidden = false; $('#pickCancel').focus();
+  }
+  $('#pickCancel').onclick = function () { $('#pickWrap').hidden = true; };
+  $('#pickWrap').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('#pickWrap').hidden = true; });
+
+  function handleFiles(list) {
+    var files = Array.prototype.slice.call(list || []);
+    if (!files.length) return;
+    var names = files.map(function (f) { return fext(f.name); });
+    if (files.length > 1 && names.indexOf('cue') > -1) {
+      return openSheet('เกมแผ่นแบบหลายไฟล์', 'เกมที่เป็น .cue + .bin ต้องบีบรวมเป็นไฟล์ .zip (หรือแปลงเป็น .chd) ก่อน แล้วลากไฟล์เดียวนั้นมาวาง ระบบรับได้ทีละไฟล์', { ok: 'ตกลง' });
+    }
+    var file = files[0];
+    if (files.length > 1) toast('วางหลายไฟล์ รับทีละไฟล์ ใช้ไฟล์แรก: ' + file.name, 'info');
+    detectSystem(file).then(function (r) {
+      if (r.native) {
+        var n = nativeById(r.native);
+        return openSheet('ไฟล์นี้เป็นเกม ' + n.name, 'เครื่องนี้เปิดด้วยโปรแกรมอีมู (' + n.app + ') บนคอมของคุณ เว็บอ่านไฟล์ตรงๆ ไม่ได้ วางไฟล์ไว้ในโฟลเดอร์เกมของเครื่องนี้ แล้วเปิดจากหน้า ' + n.name,
+          { ok: 'ไปที่หน้า ' + n.name, cb: function () { lastIcon = document.querySelector('.app[data-native="' + n.id + '"]'); openNative(n); } });
+      }
+      if (r.unknown) { toast('ไม่รู้จักนามสกุล .' + (fext(file.name) || '?') + ' เลือกเครื่องเอง', 'warn'); return chooseSystem(file, null, 'นามสกุลที่ระบบยังไม่รู้จัก'); }
+      if (r.ids.length === 1 && r.sure !== false) return openAs(sysById(r.ids[0]), file, true);
+      chooseSystem(file, r.ids, 'ไฟล์นี้ใช้ได้หลายเครื่อง เลือกให้ตรงกับเกม');
+    });
+  }
+  $('#btnPickAuto').onclick = function () {
+    var inp = document.createElement('input'); inp.type = 'file';
+    inp.onchange = function () { if (inp.files.length) handleFiles(inp.files); };
+    inp.click();
+  };
+
+  // ลากไฟล์จากเครื่องมาวางตรงไหนของหน้าก็ได้ (วางบนไอคอนเครื่อง = บังคับเครื่องนั้น)
+  var dragDepth = 0;
+  function dragHasFiles(e) { var t = e.dataTransfer && e.dataTransfer.types; return !!t && Array.prototype.indexOf.call(t, 'Files') > -1; }
+  function canDropGame() { return !$('#home').hidden && $('#sheetWrap').hidden && $('#pickWrap').hidden && $('#biosWrap').hidden && $('#ctlWrap').hidden; }
+  window.addEventListener('dragenter', function (e) { if (!dragHasFiles(e)) return; e.preventDefault(); dragDepth++; if (canDropGame()) $('#dropVeil').hidden = false; });
+  window.addEventListener('dragover', function (e) { if (dragHasFiles(e)) e.preventDefault(); });   // ไม่ให้เบราว์เซอร์เปิดไฟล์ทิ้งหน้าเว็บ (รวมตอนอยู่ในหน้าเล่น)
+  window.addEventListener('dragleave', function (e) { if (!dragHasFiles(e)) return; dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) $('#dropVeil').hidden = true; });
+  window.addEventListener('drop', function (e) {
+    if (!dragHasFiles(e)) return;
+    e.preventDefault(); dragDepth = 0; $('#dropVeil').hidden = true;
+    if (e.__iconHandled) return;
+    if (!canDropGame()) return toast('กลับหน้าคลังก่อน แล้วลากไฟล์เกมมาวาง', 'info');
+    handleFiles(e.dataTransfer.files);
+  });
 
   /* ---------- Space ใช้เป็นปุ่ม Fast Forward: กันไม่ให้ไปกดปุ่มที่โฟกัสอยู่หรือเลื่อนหน้า ---------- */
   function spaceGuard(e) {

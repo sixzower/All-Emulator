@@ -62,11 +62,11 @@
         <span class="row-text"><b>จัดการ BIOS</b><small>PS1 · Mega CD · Saturn</small></span>
         <svg class="chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
       </button>
-      <div class="row-card card info-card">
+      <button class="row-card card" id="btnPickAuto">
         <span class="w-ico"><svg viewBox="0 0 24 24"><path d="M12 4v10M8 10.500l4 4 4-4M5 19h14"/></svg></span>
-        <span class="row-text"><b>ลากไฟล์เกมมาวางบนไอคอน</b><small>ไฟล์เกมอ่านในเครื่องคุณเท่านั้น ไม่ถูกอัปโหลด</small></span>
-        <span class="badge">เคล็ดลับ</span>
-      </div>
+        <span class="row-text"><b>ลากไฟล์เกมมาวางตรงไหนก็ได้</b><small>หรือกดเลือกไฟล์ · ไม่ถูกอัปโหลดไปที่ไหน</small></span>
+        <svg class="chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
     </div>
   </section>
   <p class="credit">จำลองเครื่องเล่นด้วย <a href="https://emulatorjs.org" target="_blank" rel="noopener">EmulatorJS</a></p>
@@ -190,6 +190,26 @@
   <button type="button" role="option" data-v="คำผิด" data-c="bad">คำผิด</button>
   <button type="button" role="option" data-v="สระ/วรรณยุกต์" data-c="warn">สระ/วรรณยุกต์</button>
   <button type="button" role="option" data-v="ผ่าน" data-c="ok">ผ่าน</button>
+</div>
+
+<!-- ===== ม่านตอนลากไฟล์ ===== -->
+<div id="dropVeil" class="drop-veil" hidden aria-hidden="true">
+  <div class="dv-card">
+    <svg viewBox="0 0 24 24"><path d="M12 4v10M8 10.500l4 4 4-4M5 19h14"/></svg>
+    <b>วางไฟล์เกมที่นี่</b>
+    <span>ระบบเลือกเครื่องให้อัตโนมัติจากนามสกุลและหัวไฟล์</span>
+  </div>
+</div>
+
+<!-- ===== เลือกเครื่องสำหรับไฟล์ที่เดาไม่ได้ ===== -->
+<div id="pickWrap" class="sheet-wrap" hidden>
+  <div class="sheet glass ctl" role="dialog" aria-modal="true" aria-labelledby="pickTitle">
+    <h2 id="pickTitle">เลือกเครื่องสำหรับไฟล์นี้</h2>
+    <p class="ctl-sub" id="pickSub"></p>
+    <div class="pick-grid" id="pickGrid"></div>
+    <button class="linkbtn" id="pickAll" hidden>ดูเครื่องทั้งหมด</button>
+    <button class="sheet-btn" id="pickCancel">ยกเลิก</button>
+  </div>
 </div>
 
 <!-- ===== จัดการ BIOS ===== -->
