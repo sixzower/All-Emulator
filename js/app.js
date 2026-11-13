@@ -120,12 +120,6 @@
             alt: { text: 'เปิดด้วย ' + alt.app, cb: function () { openNative({ id: sys.native, name: sys.name, app: alt.app, url: alt.url }); } } });
         } else pickFile(sys);
       });
-      b.addEventListener('dragover', function (e) { e.preventDefault(); b.classList.add('drop'); });
-      b.addEventListener('dragleave', function () { b.classList.remove('drop'); });
-      b.addEventListener('drop', function (e) {
-        e.preventDefault(); e.__iconHandled = true; b.classList.remove('drop'); lastIcon = b;   // ลากวางบนไอคอน = บังคับเครื่องนั้น
-        if (e.dataTransfer.files[0]) launch(sys, e.dataTransfer.files[0]);
-      });
     });
     document.querySelectorAll('.app[data-native]').forEach(function (b) {
       var n = NATIVE.filter(function (x) { return x.id === b.dataset.native; })[0];
@@ -890,7 +884,7 @@
     inp.click();
   };
 
-  // ลากไฟล์จากเครื่องมาวางตรงไหนของหน้าก็ได้ (วางบนไอคอนเครื่อง = บังคับเครื่องนั้น)
+  // ลากไฟล์จากเครื่องมาวางตรงไหนของหน้าก็ได้ (วางบนไอคอนเครื่องไหนก็ไม่มีผล ระบบเดาเครื่องจากไฟล์เสมอ)
   var dragDepth = 0;
   function dragHasFiles(e) { var t = e.dataTransfer && e.dataTransfer.types; return !!t && Array.prototype.indexOf.call(t, 'Files') > -1; }
   function canDropGame() { return !$('#home').hidden && $('#sheetWrap').hidden && $('#pickWrap').hidden && $('#biosWrap').hidden && $('#ctlWrap').hidden; }
@@ -900,7 +894,6 @@
   window.addEventListener('drop', function (e) {
     if (!dragHasFiles(e)) return;
     e.preventDefault(); dragDepth = 0; $('#dropVeil').hidden = true;
-    if (e.__iconHandled) return;
     if (!canDropGame()) return toast('กลับหน้าคลังก่อน แล้วลากไฟล์เกมมาวาง', 'info');
     handleFiles(e.dataTransfer.files);
   });
