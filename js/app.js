@@ -206,7 +206,12 @@
   }
 
   /* ---------- เปิดเกม ---------- */
+  function safeFile(f) {   // EmulatorJS ตัดชื่อไฟล์ที่มี # หรือ ? ทิ้ง ทำให้นามสกุลหาย เกมเลยเปิดไม่ได้ จึงเปลี่ยนเป็น _ ก่อนส่งให้อีมู
+    var n = f.name.replace(/[#?<>:"*|\\\/]/g, '_');
+    return n === f.name ? f : new File([f], n, { type: f.type, lastModified: f.lastModified });
+  }
   function launch(sys, file) {
+    file = safeFile(file);
     ensureBios(sys, function (biosUrl) { launchNow(sys, file, biosUrl); });
   }
   function launchNow(sys, file, biosUrl) {
@@ -217,7 +222,7 @@
     $('#gameTitle').textContent = file.name.replace(/\.[^.]+$/, '');
     $('#gameSys').textContent = sys.name;
     loadNotes(); renderSlots(); loadShots();
-    var ld = $('#loading'); ld.hidden = false; ld.classList.remove('failed');
+    var ld = $('#loading'); ld.hidden = false; ld.classList.remove('failed', 'blocking'); $('#loadActions').hidden = true;
     $('#loadName').textContent = $('#gameTitle').textContent; $('#loadMsg').textContent = 'กำลังเตรียมอีมูเลเตอร์…';
     if (sys.threads && !window.crossOriginIsolated && !DEMO) toast('PSP ในเว็บอาจเปิดไม่ติดในโหมดนี้ แนะนำ PPSSPP หรือรันในเครื่องด้วย python serve.py --isolate', 'warn');
     else if (sys.heavy) toast('เครื่องนี้ใช้แรงเครื่อง ถ้ากระตุกลองปิดแท็บอื่นก่อน', 'info');
@@ -239,8 +244,13 @@
       window.EJS_color = '#0a84ff';
       window.EJS_threads = !!(sys.threads && window.crossOriginIsolated);
       presetFastForward(sys.core, window.EJS_gameName);
-      window.EJS_ready = setFastForwardDefault;
-      window.EJS_onGameStart = function () { $('#loading').hidden = true; };
+      startLogCapture();
+      window.EJS_ready = function () {
+        setFastForwardDefault();
+        try { window.EJS_emulator.debug = true; } catch (e) {}   // เปิดบันทึกละเอียดช่วงเริ่มเกม เพื่อจับสาเหตุถ้าเปิดไฟล์ไม่ได้ (ปิดเองเมื่อเกมรันได้แล้ว)
+      };
+      preflight(sys, file).then(function (w) { if (w) toast(w, 'warn'); });
+      window.EJS_onGameStart = function () { if (!failShown) $('#loading').hidden = true; scheduleStopLog(); };
       var s = document.createElement('script');
       s.src = base + 'loader.js';
       s.onerror = function () { $('#loading').classList.add('failed'); $('#loadMsg').textContent = 'โหลดอีมูเลเตอร์ไม่ได้ ตรวจสอบอินเทอร์เน็ต หรือดูวิธีใช้ออฟไลน์ใน README'; };
@@ -265,6 +275,70 @@
       if (!c[FF_INDEX] || !c[FF_INDEX].value) { c[FF_INDEX] = Object.assign({}, c[FF_INDEX], { value: 32 }); localStorage.setItem(key, JSON.stringify(o)); }
     } catch (e) {}
   }
+  /* ---------- จับสาเหตุเมื่อตัวอีมูเปิดไฟล์เกมไม่สำเร็จ ----------
+     ตัวอีมู (RetroArch) จะเด้งกลับไปเมนูของมันเอง ซึ่งผู้ใช้เข้าใจยาก: ฟังบันทึกช่วงเริ่มเกม แล้วบอกสาเหตุเป็นภาษาไทยแทน */
+  var DEBUG_LOG = /[?&]debug/.test(location.search);   // เปิดเว็บด้วย ?debug จะเก็บบันทึกตลอด และมีปุ่มคัดลอกบันทึกบนจอเกม
+  var logBuf = [], origLog = console.log, capturing = false, failShown = false, failTimer = null, stopTimer = null;
+  var FAIL_TEXT = {
+    bad_disc: 'ตัวอีมูอ่านไฟล์นี้ไม่ได้ว่าเป็นแผ่นเกมที่ถูกต้อง (Not a valid disc image) ไฟล์อาจเสียหาย ดาวน์โหลดไม่ครบ หรือสร้างไฟล์ ISO/CSO ผิดรูปแบบ ลองตรวจไฟล์ด้วย PPSSPP บนเครื่อง หรือสร้างไฟล์ใหม่',
+    oom: 'หน่วยความจำของเบราว์เซอร์ไม่พอสำหรับไฟล์นี้ ลองปิดแท็บอื่น แปลงเป็น .cso ให้ไฟล์เล็กลง หรือใช้ PPSSPP บนเครื่อง',
+    no_content: 'เปิดไฟล์เกมไม่สำเร็จ ตรวจว่าไฟล์สมบูรณ์และนามสกุลถูกต้อง (PSP ใช้ .iso .cso หรือ .pbp) ถ้าเป็นไฟล์ที่บีบอัดเป็น .zip ลองแตกไฟล์ก่อน'
+  };
+  function logText() {
+    var head = ['PlayLab บันทึกการเปิดเกม', 'เครื่อง: ' + (current ? current.system.name : '-'),
+      'ไฟล์: ' + (current ? current.file.name + ' (' + Math.round(current.file.size / 1048576) + ' MB)' : '-'),
+      'เบราว์เซอร์: ' + navigator.userAgent, 'cross-origin isolated: ' + window.crossOriginIsolated, ''].join('\n');
+    return head + logBuf.filter(function (l) { return !/^ppsspp_|^\s*$/.test(l); }).slice(-400).join('\n');
+  }
+  function copyLog() {
+    var t = logText();
+    var fallback = function () { download(new Blob([t], { type: 'text/plain;charset=utf-8' }), 'playlab-log.txt'); toast('คัดลอกไม่ได้ บันทึกเป็นไฟล์แทน', 'info'); };
+    try { navigator.clipboard.writeText(t).then(function () { toast('คัดลอกบันทึกแล้ว ส่งให้ผู้ช่วยดูได้เลย', 'ok'); }, fallback); } catch (e) { fallback(); }
+  }
+  function showLoadFail(reason) {
+    if (failShown) return;
+    failShown = true; clearTimeout(failTimer);
+    var ld = $('#loading'); ld.hidden = false; ld.classList.add('failed', 'blocking');
+    $('#loadName').textContent = 'เปิดเกมไม่สำเร็จ'; $('#loadMsg').textContent = FAIL_TEXT[reason] || FAIL_TEXT.no_content; $('#loadActions').hidden = false;
+  }
+  function checkFailure(m) {
+    if (failShown) return;
+    if (/Not a valid disc image/i.test(m)) showLoadFail('bad_disc');
+    else if (/Array buffer allocation failed|out of memory|Cannot enlarge memory|Invalid typed array length/i.test(m)) showLoadFail('oom');
+    else if (/Failed to load content|No content, starting dummy core/i.test(m)) { clearTimeout(failTimer); failTimer = setTimeout(function () { showLoadFail('no_content'); }, 700); }   // รอสาเหตุที่เฉพาะเจาะจงกว่ามาก่อน
+  }
+  function onWinError(e) { checkFailure(String((e && (e.message || (e.reason && e.reason.message))) || '')); }
+  function startLogCapture() {
+    logBuf.length = 0; failShown = false; clearTimeout(failTimer); clearTimeout(stopTimer);
+    if (capturing) return;
+    capturing = true;
+    console.log = function () {
+      try { var m = Array.prototype.slice.call(arguments).join(' '); logBuf.push(m); if (logBuf.length > 2500) logBuf.shift(); checkFailure(m); } catch (e) {}
+      return origLog.apply(console, arguments);
+    };
+    window.addEventListener('error', onWinError); window.addEventListener('unhandledrejection', onWinError);
+  }
+  function stopLogCapture() {
+    if (!capturing || DEBUG_LOG) return;
+    capturing = false; console.log = origLog;
+    window.removeEventListener('error', onWinError); window.removeEventListener('unhandledrejection', onWinError);
+    try { window.EJS_emulator.debug = false; } catch (e) {}
+  }
+  function scheduleStopLog() { clearTimeout(stopTimer); stopTimer = setTimeout(stopLogCapture, 8000); }   // เกมเริ่มแล้ว 8 วินาทีไม่พบปัญหา ก็เลิกจับบันทึก
+  $('#logCopy').onclick = copyLog;
+  $('#logBack').onclick = function () { $('#btnBack').click(); };
+  if (DEBUG_LOG) { var lf = document.createElement('button'); lf.className = 'pill soft log-float'; lf.textContent = 'คัดลอกบันทึก'; lf.onclick = copyLog; $('.screen').appendChild(lf); }
+
+  // ตรวจไฟล์ PSP ก่อนเปิด: เตือนเท่านั้น ไม่ห้ามเปิด (ฟอร์แมตแปลกๆ บางแบบเปิดได้)
+  function preflight(sys, file) {
+    if (sys.id !== 'psp') return Promise.resolve(null);
+    var e = fext(file.name), gb = file.size / 1073741824;
+    var sizeWarn = gb > 1.5 ? 'ไฟล์ใหญ่ ' + gb.toFixed(1) + ' GB อาจกินหน่วยความจำเบราว์เซอร์จนเปิดไม่ได้ ลองแปลงเป็น .cso ให้เล็กลง' : null;
+    if (e === 'iso') return file.slice(0, 0x8010).arrayBuffer().then(function (b) { return ascii(new Uint8Array(b), 0x8001, 5) === 'CD001' ? sizeWarn : 'ไฟล์ .iso นี้ไม่พบลายเซ็นแผ่น ISO ที่ถูกต้อง อาจเสียหายหรือเป็นฟอร์แมตอื่น (ลองเปิดต่อให้)'; }, function () { return null; });
+    if (e === 'cso') return file.slice(0, 4).arrayBuffer().then(function (b) { var h = ascii(new Uint8Array(b), 0, 4); return (h === 'CISO' || h === 'ZISO') ? sizeWarn : 'ไฟล์ .cso นี้ไม่พบลายเซ็น CISO อาจเสียหายหรือนามสกุลไม่ตรงกับเนื้อไฟล์ (ลองเปิดต่อให้)'; }, function () { return null; });
+    return Promise.resolve(sizeWarn);
+  }
+
   function probe(url) {
     return fetch(url, { method: 'HEAD' }).then(function (r) { return r.ok; }, function () { return false; });
   }
