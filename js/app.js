@@ -250,7 +250,7 @@
         try { window.EJS_emulator.debug = true; } catch (e) {}   // เปิดบันทึกละเอียดช่วงเริ่มเกม เพื่อจับสาเหตุถ้าเปิดไฟล์ไม่ได้ (ปิดเองเมื่อเกมรันได้แล้ว)
       };
       preflight(sys, file).then(function (w) { if (w) toast(w, 'warn'); });
-      window.EJS_onGameStart = function () { if (!failShown) $('#loading').hidden = true; scheduleStopLog(); };
+      window.EJS_onGameStart = function () { if (!failShown) $('#loading').hidden = true; enforceFastForward(); scheduleStopLog(); };
       var s = document.createElement('script');
       s.src = base + 'loader.js';
       s.onerror = function () { $('#loading').classList.add('failed'); $('#loadMsg').textContent = 'โหลดอีมูเลเตอร์ไม่ได้ ตรวจสอบอินเทอร์เน็ต หรือดูวิธีใช้ออฟไลน์ใน README'; };
@@ -266,15 +266,33 @@
       if (d && d[0]) d[0][FF_INDEX] = Object.assign({}, d[0][FF_INDEX], { value: 'space' });
     } catch (e) {}
   }
-  function presetFastForward(core, gameName) {   // เกมที่เคยเปิดแล้วและมีการตั้งค่าเก็บไว้: ถ้ายังไม่มีปุ่ม Fast Forward ให้ใส่ Space (รหัสปุ่ม 32)
+  function freeSpace(controls) {   // เอา Space ออกจากปุ่มอื่นทุกปุ่ม กันกดทีเดียวทำสองอย่าง
+    for (var i = 0; i < 4; i++) {
+      var p = controls && controls[i]; if (!p) continue;
+      for (var j in p) if (+j !== FF_INDEX && p[j] && (p[j].value === 32 || p[j].value === 'space')) delete p[j].value;
+    }
+  }
+  function presetFastForward(core, gameName) {   // เกมที่เคยเปิดแล้วและมีการตั้งค่าเก็บไว้: บังคับให้ Fast Forward = Space (รหัสปุ่ม 32) เสมอ
     try {
       var key = 'ejs-1-' + core + '-' + gameName + '-settings', raw = localStorage.getItem(key);
       if (!raw) return;
-      var o = JSON.parse(raw), c = o.controlSettings && o.controlSettings[0];
-      if (!c) return;
-      if (!c[FF_INDEX] || !c[FF_INDEX].value) { c[FF_INDEX] = Object.assign({}, c[FF_INDEX], { value: 32 }); localStorage.setItem(key, JSON.stringify(o)); }
+      var o = JSON.parse(raw), cs = o.controlSettings;
+      if (!cs || !cs[0]) return;
+      freeSpace(cs);
+      cs[0][FF_INDEX] = Object.assign({}, cs[0][FF_INDEX], { value: 32 });
+      localStorage.setItem(key, JSON.stringify(o));
     } catch (e) {}
   }
+  function enforceFastForward() {   // เกมเริ่มแล้ว: ย้ำอีกชั้นที่ตัวอีมูที่กำลังรัน (กันกรณีโหลดค่าจากที่เก็บไม่ตรงชื่อ) แล้วบันทึกกลับ
+    try {
+      var em = window.EJS_emulator;
+      freeSpace(em.controls);
+      em.controls[0][FF_INDEX] = Object.assign({}, em.controls[0][FF_INDEX], { value: 32 });
+      if (em.checkGamepadInputs) em.checkGamepadInputs();   // ให้เมนูตั้งค่าปุ่มของอีมูแสดงค่าใหม่
+      if (em.saveSettings) em.saveSettings();
+    } catch (e) {}
+  }
+
   /* ---------- จับสาเหตุเมื่อตัวอีมูเปิดไฟล์เกมไม่สำเร็จ ----------
      ตัวอีมู (RetroArch) จะเด้งกลับไปเมนูของมันเอง ซึ่งผู้ใช้เข้าใจยาก: ฟังบันทึกช่วงเริ่มเกม แล้วบอกสาเหตุเป็นภาษาไทยแทน */
   var DEBUG_LOG = /[?&]debug/.test(location.search);   // เปิดเว็บด้วย ?debug จะเก็บบันทึกตลอด และมีปุ่มคัดลอกบันทึกบนจอเกม
@@ -360,7 +378,7 @@
   };
   var fast = false;
   $('#btnFast').onclick = function () {
-    try { fast = !fast; emu().gameManager.toggleFastForward(fast ? 1 : 0); $('#btnFast').classList.toggle('on', fast); }
+    try { fast = !fast; emu().gameManager.toggleFastForward(fast ? 1 : 0); emu().isFastForward = fast; $('#btnFast').classList.toggle('on', fast); }
     catch (e) { fast = false; toast('ใช้ปุ่มเร่งความเร็วในแถบควบคุมของอีมูแทน'); }
   };
   /* เสียงชัตเตอร์สังเคราะห์ด้วย WebAudio (ไม่ต้องมีไฟล์เสียง) */
@@ -972,6 +990,29 @@
     handleFiles(e.dataTransfer.files);
   });
 
+  /* ---------- ให้ปุ่มเกมใช้ได้ตลอด ไม่ต้องคลิกจอเกมซ้ำ ----------
+     ตัวอีมูรับปุ่มเฉพาะตอนโฟกัสอยู่ในกรอบเกม: (1) คืนโฟกัสให้กรอบเกมหลังกดปุ่มบนหน้าเล่น (2) ส่งปุ่มที่ผูกกับเกมต่อให้อีมูเมื่อโฟกัสอยู่ที่อื่น */
+  function modalOpen() { return !$('#lb').hidden || !$('#sheetWrap').hidden || !$('#ctlWrap').hidden || !$('#biosWrap').hidden || !$('#pickWrap').hidden; }
+  function typingTarget(t) { return !!t && (/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName) || t.isContentEditable); }
+  document.addEventListener('click', function (e) {
+    var em = window.EJS_emulator;
+    if (DEMO || !em || !em.started || $('#play').hidden || modalOpen()) return;
+    var b = e.target.closest && e.target.closest('button');
+    if (!b || !$('#play').contains(b) || b.id === 'ddBtn' || $('#ejs').contains(b)) return;
+    setTimeout(function () { if (!typingTarget(document.activeElement)) $('#ejs').focus({ preventScroll: true }); }, 0);
+  });
+  function forwardKey(e) {
+    var em = window.EJS_emulator;
+    if (DEMO || !em || !em.started || $('#play').hidden || e.ctrlKey || e.metaKey || e.altKey || modalOpen()) return;
+    var t = e.target;
+    if (typingTarget(t) || (t && t.closest && t.closest('#ejs, button, a, [role=option]'))) return;   // อีมูรับเอง / กำลังพิมพ์ / ใช้คีย์บอร์ดกับปุ่มอยู่
+    try {
+      for (var i = 0; i < 4; i++) for (var j = 0; j < 30; j++) { var c = em.controls[i][j]; if (c && c.value === e.keyCode) return em.keyChange(e); }   // ส่งเฉพาะปุ่มที่ผูกกับเกม ปุ่มอื่นของเบราว์เซอร์ไม่ถูกบล็อก
+    } catch (x) {}
+  }
+  document.addEventListener('keydown', forwardKey);
+  document.addEventListener('keyup', forwardKey);
+
   /* ---------- Space ใช้เป็นปุ่ม Fast Forward: กันไม่ให้ไปกดปุ่มที่โฟกัสอยู่หรือเลื่อนหน้า ---------- */
   function spaceGuard(e) {
     if (e.key !== ' ' || $('#play').hidden) return;
@@ -1015,7 +1056,7 @@
     if (pad.approx) notes.unshift('ชื่อปุ่มตรงกับเครื่องจริง แต่คีย์ที่ตรงกันอาจต่างตามเกม ถ้าไม่ตรงให้ดูในเมนูควบคุมของอีมู');
     notes.push('เสียบจอยแล้วใช้ได้ทันที · เปลี่ยนปุ่มได้ที่ไอคอนจอยในแถบควบคุมของอีมู (ใต้จอเกม)');
     $('#ctlTitle').textContent = 'ปุ่มควบคุม · ' + sys.name;
-    $('#ctlBody').innerHTML = '<ul class="ctl-list">' + rows + '</ul><div class="ctl-note">' + notes.map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('') + '</div><p class="ctl-sub">ปุ่มลัด</p><ul class="ctl-list"><li><span class="lbl">เร่งความเร็ว (Fast Forward)</span><span class="keys"><kbd>Space</kbd></span></li><li><span class="lbl">แคปจอ</span><span class="keys"><kbd>Shift</kbd></span></li></ul>';
+    $('#ctlBody').innerHTML = '<ul class="ctl-list">' + rows + '</ul><div class="ctl-note">' + notes.map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('') + '</div><p class="ctl-sub">ปุ่มลัด</p><ul class="ctl-list"><li><span class="lbl">เร่งความเร็ว (กดค้าง)</span><span class="keys"><kbd>Space</kbd></span></li><li><span class="lbl">แคปจอ</span><span class="keys"><kbd>Shift</kbd></span></li></ul>';
     $('#ctlWrap').hidden = false; $('#ctlClose').focus();
   }
   $('#btnCtl').onclick = openControls;
