@@ -74,3 +74,7 @@ window.BIOS = {
   scd: { label: 'Mega CD',       optional: false, hint: 'เช่น bios_CD_U.bin' },
   sat: { label: 'Sega Saturn',   optional: false, hint: 'เช่น sega_101.bin' }
 };
+
+/* เครื่องที่ใช้ "ย้อนเวลา 10 วินาที" ได้ (สถานะเกมเล็กพอที่จะเก็บทุก 1 วินาที)
+   เครื่องหนัก (PSP, N64, PS1, Saturn, DS, Mega CD, อาร์เคด) ไม่รองรับ เพราะสถานะใหญ่จนเกมกระตุกและกินแรม */
+window.REWIND = ['gb', 'gba', 'nes', 'snes', 'md', 'sms', 'gg', 'pce', 'ngp', 'ws', 'a26'];

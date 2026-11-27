@@ -82,7 +82,11 @@ def resolve_game(entry, rel):
 
 class H(SimpleHTTPRequestHandler):
     def log_message(self, fmt, *a):
-        if "/api/" not in (a[0] if a else ""):
+        try:
+            msg = fmt % a if a else str(fmt)
+        except Exception:
+            msg = str(fmt)
+        if "/api/" not in msg:      # ไม่แสดงบันทึกของ /api/ (กันรกจอ) ส่วนอย่างอื่นแสดงปกติ
             super().log_message(fmt, *a)
 
     def end_headers(self):

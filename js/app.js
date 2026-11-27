@@ -250,7 +250,7 @@
         try { window.EJS_emulator.debug = true; } catch (e) {}   // เปิดบันทึกละเอียดช่วงเริ่มเกม เพื่อจับสาเหตุถ้าเปิดไฟล์ไม่ได้ (ปิดเองเมื่อเกมรันได้แล้ว)
       };
       preflight(sys, file).then(function (w) { if (w) toast(w, 'warn'); });
-      window.EJS_onGameStart = function () { if (!failShown) $('#loading').hidden = true; enforceFastForward(); scheduleStopLog(); };
+      window.EJS_onGameStart = function () { if (!failShown) $('#loading').hidden = true; enforceFastForward(); startSnaps(); scheduleStopLog(); };
       var s = document.createElement('script');
       s.src = base + 'loader.js';
       s.onerror = function () { $('#loading').classList.add('failed'); $('#loadMsg').textContent = 'โหลดอีมูเลเตอร์ไม่ได้ ตรวจสอบอินเทอร์เน็ต หรือดูวิธีใช้ออฟไลน์ใน README'; };
@@ -990,6 +990,44 @@
     handleFiles(e.dataTransfer.files);
   });
 
+  /* ---------- ย้อนเวลา 10 วินาที: กดปุ่ม "ย้อน" หรือ Backspace 1 ครั้ง = ย้อนกลับ 10 วินาที (กดซ้ำย้อนต่อได้) ----------
+     เก็บภาพบันทึกสถานะเกมทุก 1 วินาที (เบากว่าระบบย้อนต่อเนื่องของอีมูที่ต้องบันทึกทุกไม่กี่เฟรม) ใช้เฉพาะเครื่องเบา */
+  var REWIND_STEP = 10, REWIND_KEEP = 60, REWIND_MAX_BYTES = 64 * 1048576;
+  var snaps = [], gameSec = 0, snapTimer = null;
+  function rewindOK() { return !!current && REWIND.indexOf(current.system.id) > -1; }
+  function snapBytes() { return snaps.reduce(function (n, x) { return n + x.data.length; }, 0); }
+  function startSnaps() {
+    clearInterval(snapTimer); snaps = []; gameSec = 0;
+    if (!rewindOK()) return;
+    snapTimer = setInterval(function () {
+      var em = window.EJS_emulator;
+      if (!em || !em.started || em.paused || document.hidden || $('#play').hidden || failShown) return;   // หยุดนับตอนพักเกม/ซ่อนแท็บ ให้ "10 วินาที" เป็นเวลาที่เล่นจริง
+      try {
+        gameSec++;
+        snaps.push({ t: gameSec, data: em.gameManager.getState() });
+        while (snaps.length > REWIND_KEEP || (snaps.length > 2 && snapBytes() > REWIND_MAX_BYTES)) snaps.shift();
+      } catch (e) { gameSec--; }
+    }, 1000);
+  }
+  function rewindBack(sec) {
+    var em = window.EJS_emulator;
+    if (DEMO || !em || !em.started) return toast('ย้อนเวลาใช้ได้ตอนเล่นเกมอยู่', 'info');
+    if (!rewindOK()) return toast('เครื่องนี้ยังไม่รองรับย้อนเวลา (หนักเกินไป จะทำให้เกมกระตุก)', 'warn');
+    if (!snaps.length) return toast('ยังไม่มีประวัติให้ย้อน รอสักครู่หลังเริ่มเกม', 'info');
+    var target = gameSec - sec, pick = null;
+    for (var i = snaps.length - 1; i >= 0; i--) if (snaps[i].t <= target) { pick = snaps[i]; break; }
+    var oldest = !pick; if (oldest) pick = snaps[0];
+    try { em.gameManager.loadState(pick.data); } catch (e) { return toast('ย้อนเวลาไม่สำเร็จ', 'warn'); }
+    var went = gameSec - pick.t;
+    snaps = snaps.filter(function (x) { return x.t <= pick.t; }); gameSec = pick.t;   // อนาคตที่ย้อนทิ้งไปแล้วไม่เก็บ
+    toast(oldest ? 'ย้อนไปจุดเก่าสุดที่เก็บไว้ (' + went + ' วินาที)' : 'ย้อนกลับ ' + went + ' วินาที', 'ok');
+  }
+  $('#btnRewind').addEventListener('click', function () { rewindBack(REWIND_STEP); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Backspace' || e.repeat || e.ctrlKey || e.metaKey || e.altKey || $('#play').hidden || modalOpen() || typingTarget(e.target)) return;
+    e.preventDefault(); rewindBack(REWIND_STEP);
+  });
+
   /* ---------- ให้ปุ่มเกมใช้ได้ตลอด ไม่ต้องคลิกจอเกมซ้ำ ----------
      ตัวอีมูรับปุ่มเฉพาะตอนโฟกัสอยู่ในกรอบเกม: (1) คืนโฟกัสให้กรอบเกมหลังกดปุ่มบนหน้าเล่น (2) ส่งปุ่มที่ผูกกับเกมต่อให้อีมูเมื่อโฟกัสอยู่ที่อื่น */
   function modalOpen() { return !$('#lb').hidden || !$('#sheetWrap').hidden || !$('#ctlWrap').hidden || !$('#biosWrap').hidden || !$('#pickWrap').hidden; }
@@ -1015,7 +1053,7 @@
 
   /* ---------- Space ใช้เป็นปุ่ม Fast Forward: กันไม่ให้ไปกดปุ่มที่โฟกัสอยู่หรือเลื่อนหน้า ---------- */
   function spaceGuard(e) {
-    if (e.key !== ' ' || $('#play').hidden) return;
+    if ((e.key !== ' ' && e.key !== 'Backspace') || $('#play').hidden) return;
     if (!$('#lb').hidden || !$('#sheetWrap').hidden || !$('#ctlWrap').hidden || !$('#biosWrap').hidden) return;
     var t = e.target; if (t && (/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName) || t.isContentEditable)) return;   // พิมพ์โน้ตยังเว้นวรรคได้ตามปกติ
     e.preventDefault();   // ไม่ใช้ stopPropagation เพื่อให้อีมูยังรับปุ่มนี้ได้
@@ -1056,7 +1094,7 @@
     if (pad.approx) notes.unshift('ชื่อปุ่มตรงกับเครื่องจริง แต่คีย์ที่ตรงกันอาจต่างตามเกม ถ้าไม่ตรงให้ดูในเมนูควบคุมของอีมู');
     notes.push('เสียบจอยแล้วใช้ได้ทันที · เปลี่ยนปุ่มได้ที่ไอคอนจอยในแถบควบคุมของอีมู (ใต้จอเกม)');
     $('#ctlTitle').textContent = 'ปุ่มควบคุม · ' + sys.name;
-    $('#ctlBody').innerHTML = '<ul class="ctl-list">' + rows + '</ul><div class="ctl-note">' + notes.map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('') + '</div><p class="ctl-sub">ปุ่มลัด</p><ul class="ctl-list"><li><span class="lbl">เร่งความเร็ว (กดค้าง)</span><span class="keys"><kbd>Space</kbd></span></li><li><span class="lbl">แคปจอ</span><span class="keys"><kbd>Shift</kbd></span></li></ul>';
+    $('#ctlBody').innerHTML = '<ul class="ctl-list">' + rows + '</ul><div class="ctl-note">' + notes.map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('') + '</div><p class="ctl-sub">ปุ่มลัด</p><ul class="ctl-list"><li><span class="lbl">เร่งความเร็ว (กดค้าง)</span><span class="keys"><kbd>Space</kbd></span></li><li><span class="lbl">ย้อนเวลา 10 วินาที (กดซ้ำย้อนต่อ)</span><span class="keys"><kbd>Backspace</kbd></span></li><li><span class="lbl">แคปจอ</span><span class="keys"><kbd>Shift</kbd></span></li></ul>';
     $('#ctlWrap').hidden = false; $('#ctlClose').focus();
   }
   $('#btnCtl').onclick = openControls;
